@@ -1,12 +1,12 @@
-import { Controller, Get, Req, UseBefore } from 'routing-controllers';
-import { Request } from 'express';
+import { Controller, Get, Req, UseBefore } from "routing-controllers";
+import { Request } from "express";
 
-import authMiddleware from '@middlewares/auth.middleware';
-import { CitizenService } from '@services/citizen.service';
-import { EmployeeService } from '@services/employee.service';
-import { PortalPersonData } from '@/data-contracts/employee/data-contracts';
-import { maskPersonNumber } from '@utils/util';
-import { logger } from '@utils/logger';
+import authMiddleware from "@middlewares/auth.middleware";
+import { CitizenService } from "@services/citizen.service";
+import { EmployeeService } from "@services/employee.service";
+import { PortalPersonData } from "@/data-contracts/employee/data-contracts";
+import { maskPersonNumber } from "@utils/util";
+import { logger } from "@utils/logger";
 
 interface MeResponse {
   type: string;
@@ -33,20 +33,24 @@ export class MeController {
   private readonly citizenService = new CitizenService();
   private readonly employeeService = new EmployeeService();
 
-  @Get('/me')
+  @Get("/me")
   @UseBefore(authMiddleware)
   async getMe(@Req() req: Request): Promise<MeResponse> {
     const user = req.session.user!;
 
     // Admin: SAML identity + full Employee 2.0 record for the login name.
-    if (user.type === 'admin') {
+    if (user.type === "admin") {
       let employee: PortalPersonData | null = null;
       try {
         if (user.username) {
-          employee = await this.employeeService.getPortalPersonData(user.username);
+          employee = await this.employeeService.getPortalPersonData(
+            user.username,
+          );
         }
       } catch (error) {
-        logger.error(`Could not fetch Employee data for ${user.username}: ${(error as Error).message}`);
+        logger.error(
+          `Could not fetch Employee data for ${user.username}: ${(error as Error).message}`,
+        );
       }
 
       return {
@@ -62,7 +66,7 @@ export class MeController {
     }
 
     // Citizen: fetch Citizen 3.0 data for the logged-in person.
-    let citizen: MeResponse['citizen'] = null;
+    let citizen: MeResponse["citizen"] = null;
     try {
       const data = await this.citizenService.getCitizen(user.personId!);
       const primaryAddress = data.addresses?.[0];
@@ -75,7 +79,9 @@ export class MeController {
       };
     } catch (error) {
       // Don't fail the whole dashboard if Citizen is unavailable; log and return null.
-      logger.error(`Could not fetch Citizen data for personId ${user.personId}: ${(error as Error).message}`);
+      logger.error(
+        `Could not fetch Citizen data for personId ${user.personId}: ${(error as Error).message}`,
+      );
     }
 
     return {

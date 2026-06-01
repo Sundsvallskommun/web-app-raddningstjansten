@@ -17,6 +17,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import { ReactElement, useState } from "react";
+import { ProfileDialog } from "./ProfileDialog";
 
 interface WrapperProps {
   title: string;
@@ -34,12 +35,23 @@ export const Wrapper = ({
   user,
 }: WrapperProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [open, setOpen] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleClose = () => {
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleClickOpenProfileDialog = () => {
+    setOpen(true);
+    setAnchorEl(null);
+  };
+
+  const handleCloseProfileDialog = () => {
+    setOpen(false);
     setAnchorEl(null);
   };
 
@@ -74,9 +86,9 @@ export const Wrapper = ({
                 horizontal: "right",
               }}
               open={Boolean(anchorEl)}
-              onClose={handleClose}
+              onClose={handleCloseMenu}
             >
-              <MenuItem onClick={handleClose}>
+              <MenuItem onClick={handleClickOpenProfileDialog}>
                 <ListItemIcon>
                   <AccountCircleRounded fontSize='small' />
                 </ListItemIcon>
@@ -93,6 +105,11 @@ export const Wrapper = ({
         </Toolbar>
       </AppBar>
       <Container sx={{ mt: 4 }}>{children}</Container>
+      <ProfileDialog
+        onClose={handleCloseProfileDialog}
+        open={open}
+        user={user}
+      />
     </Box>
   );
 };
