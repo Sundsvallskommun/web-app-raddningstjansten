@@ -10,6 +10,11 @@ interface MeResponse {
   type: string;
   name: string;
   maskedPersonNumber?: string;
+  // Admin (SAML) fields
+  username?: string;
+  email?: string;
+  groups?: string[];
+  // Citizen (Citizen 3.0) fields
   citizen: {
     givenname?: string | null;
     lastname?: string | null;
@@ -28,9 +33,23 @@ export class MeController {
   async getMe(@Req() req: Request): Promise<MeResponse> {
     const user = req.session.user!;
 
+    // Admin: show the SAML profile directly (no Citizen lookup).
+    if (user.type === 'admin') {
+      return {
+        type: user.type,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        groups: user.groups,
+        maskedPersonNumber: maskPersonNumber(user.citizenIdentifier),
+        citizen: null,
+      };
+    }
+
+    // Citizen: fetch Citizen 3.0 data for the logged-in person.
     let citizen: MeResponse['citizen'] = null;
     try {
-      const data = await this.citizenService.getCitizen(user.personId);
+      const data = await this.citizenService.getCitizen(user.personId!);
       const primaryAddress = data.addresses?.[0];
       citizen = {
         givenname: data.givenname,

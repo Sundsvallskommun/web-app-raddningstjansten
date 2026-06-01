@@ -2,7 +2,6 @@ import App from '@/app';
 import validateEnv from '@utils/validateEnv';
 import { HealthController } from '@controllers/health.controller';
 import { CitizenAuthController } from '@controllers/citizen-auth.controller';
-import { AdminAuthController } from '@controllers/admin-auth.controller';
 import { MeController } from '@controllers/me.controller';
 
 process.on('uncaughtException', err => {
@@ -15,6 +14,6 @@ process.on('unhandledRejection', reason => {
 
 validateEnv();
 
-const app = new App([HealthController, CitizenAuthController, AdminAuthController, MeController]);
+const app = new App([HealthController, CitizenAuthController, MeController]);
 
 app.listen();

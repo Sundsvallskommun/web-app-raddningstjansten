@@ -21,6 +21,11 @@ export interface Me {
   type: 'citizen' | 'admin';
   name: string;
   maskedPersonNumber?: string;
+  // Admin (SAML) fields
+  username?: string;
+  email?: string;
+  groups?: string[];
+  // Citizen (Citizen 3.0) fields
   citizen: CitizenInfo | null;
 }
 

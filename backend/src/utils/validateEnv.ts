@@ -14,7 +14,14 @@ const validateEnv = () => {
     MUNICIPALITY_ID: str(),
     CITIZEN_PERSON_ID: str(),
     CITIZEN_PERSON_NUMBER: str(),
-    ADMIN_PERSON_ID: str(),
+    // Admin SAML against the fake SSO IdP
+    SAML_ENTRY_SSO: url(),
+    SAML_CALLBACK_URL: url(),
+    SAML_SUCCESS_REDIRECT: url(),
+    SAML_FAILURE_REDIRECT: url(),
+    SAML_ISSUER: str(),
+    SAML_IDP_PUBLIC_CERT: str(),
+    ADMIN_GROUP: str(),
   });
 };
 

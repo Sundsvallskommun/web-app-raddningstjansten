@@ -21,6 +21,16 @@ export const {
   CITIZEN_PERSON_ID,
   CITIZEN_PERSON_NUMBER,
   CITIZEN_NAME,
-  ADMIN_PERSON_ID,
-  ADMIN_NAME,
+  // Admin SAML (fake SSO IdP) - Service Provider config
+  SAML_ENTRY_SSO,
+  SAML_CALLBACK_URL,
+  SAML_LOGOUT_CALLBACK_URL,
+  SAML_SUCCESS_REDIRECT,
+  SAML_FAILURE_REDIRECT,
+  SAML_ISSUER,
+  SAML_IDP_PUBLIC_CERT,
+  SAML_PRIVATE_KEY,
+  SAML_PUBLIC_KEY,
+  // Comma-separated allowlist of AD groups permitted to log in as admin
+  ADMIN_GROUP,
 } = process.env;

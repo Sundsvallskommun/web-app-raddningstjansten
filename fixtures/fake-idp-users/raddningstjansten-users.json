@@ -1,0 +1,50 @@
+[
+  {
+    "id": "94",
+    "name": "Tora Åström",
+    "username": "tor10ast",
+    "password": "KommunDraken42!",
+    "attributes": {
+      "givenName": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "value": "Tora",
+        "type": "xs:string"
+      },
+      "surname": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "value": "Åström",
+        "type": "xs:string"
+      },
+      "citizenIdentifier": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "value": "198101012386",
+        "type": "xs:string"
+      },
+      "username": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "type": "xs:string",
+        "value": "tor10ast"
+      },
+      "sn": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "value": "Räddningstjänsten",
+        "type": "xs:string"
+      },
+      "email": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "value": "tora.astrom@rtjmedelpad.se",
+        "type": "xs:string"
+      },
+      "groups": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "value": "Raddningstjansten-AVD-CHEFER",
+        "type": "xs:string"
+      },
+      "urn:oid:0.9.2342.19200300.100.1.1": {
+        "format": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "type": "xs:string",
+        "value": "tor10ast"
+      }
+    }
+  }
+]

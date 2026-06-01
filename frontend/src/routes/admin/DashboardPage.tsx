@@ -7,7 +7,7 @@ export function AdminDashboardPage() {
 
   function logout() {
     // Server-side redirect flow clears the session and returns to /admin.
-    window.location.href = '/api/admin/logout';
+    window.location.href = '/api/saml/logout';
   }
 
   return (

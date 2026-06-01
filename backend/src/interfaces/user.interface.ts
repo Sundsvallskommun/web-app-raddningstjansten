@@ -1,14 +1,26 @@
 export type UserType = 'citizen' | 'admin';
 
 /**
- * The shape we store in the session after a (mock) login.
- * personNumber is only kept server-side and is masked before reaching the client.
+ * The shape we store in the session after login.
+ *
+ * Citizen (BankID mock): personId + personNumber.
+ * Admin (SAML / fake SSO IdP): username, email, groups and the SAML
+ * citizenIdentifier (a Swedish personal number).
+ *
+ * Raw personal numbers (personNumber / citizenIdentifier) are kept server-side
+ * only and masked before they reach the client.
  */
 export interface SessionUser {
   type: UserType;
-  /** Citizen personId (uuid) used for Citizen 3.0 lookups */
-  personId: string;
   name: string;
-  /** Raw personal number - NEVER serialize this to the client */
+
+  // Citizen
+  personId?: string;
   personNumber?: string;
+
+  // Admin (from SAML attributes)
+  username?: string;
+  email?: string;
+  groups?: string[];
+  citizenIdentifier?: string;
 }

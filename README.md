@@ -5,14 +5,17 @@ POC för en webbtjänst för Räddningstjänsten. Mono-repo med en **Express.js 
 
 Tjänsten har två ingångar:
 
-| Ingång        | URL              | Inloggning (mockad i POC)        |
-| ------------- | ---------------- | -------------------------------- |
-| Medborgare    | `/`              | BankID (mock, format-kompatibel) |
-| Administratör | `/admin`         | Entra-ID / AD (mock)             |
+| Ingång        | URL              | Inloggning (i POC)                          |
+| ------------- | ---------------- | ------------------------------------------- |
+| Medborgare    | `/`              | BankID (mock, format-kompatibel)            |
+| Administratör | `/admin`         | SAML mot fejk-SSO-IdP (samma som dispatch)  |
 
-Efter inloggning visas en dashboard som hämtar data om den inloggade från
-**Citizen 3.0** via WSO2 (test-miljö). Personnummer maskas alltid i BFF:n innan
-det når frontend.
+Medborgar-dashboarden hämtar data om den inloggade från **Citizen 3.0** via WSO2
+(test-miljö). Admin-dashboarden visar SAML-profilen (namn, e-post, grupper).
+Personnummer maskas alltid i BFF:n innan det når frontend.
+
+Admin-inloggningen sker via SAML mot [`web-app-fake-sso-idp`](https://github.com/Sundsvallskommun/web-app-fake-sso-idp)
+och behörighet styrs av AD-gruppmedlemskap (`ADMIN_GROUP`).
 
 ## Arkitektur
 
@@ -51,6 +54,24 @@ yarn dev                                         # http://localhost:3000
 
 Vite proxar `/api` → `http://localhost:3001` i dev.
 
+### Fejk-SSO-IdP (för admin-inloggning)
+
+Admin-inloggningen använder SAML mot
+[`web-app-fake-sso-idp`](https://github.com/Sundsvallskommun/web-app-fake-sso-idp).
+Kör den separat på `:7000`:
+
+1. Starta fejk-IdP:n enligt dess README (generera cert i `lib/certs/`, kopiera
+   `users.json`). Lägg in testanvändaren från `fixtures/fake-idp-users/`
+   (**Tora Åström**, `tor10ast` / `KommunDraken42!`, grupp
+   `Raddningstjansten-AVD-CHEFER`).
+2. Sätt IdP:ns `DESTINATION`/`METADATA` till SP:ns URL:er:
+   - `DESTINATION=http://localhost:3001/api/saml/login/callback`
+   - `METADATA=http://localhost:3001/api/saml/metadata`
+3. I backend `.env.development.local`: sätt `SAML_IDP_PUBLIC_CERT` till innehållet
+   i IdP:ns `lib/certs/public.cer` och se till att `ADMIN_GROUP` matchar gruppen.
+
+Inloggning som medborgare kräver **inte** IdP:n.
+
 ### Med Docker (lokalt)
 
 ```bash
@@ -66,7 +87,8 @@ serveras av nginx (port `80`) och proxar `/api` vidare till backend-servicen.
 
 ## Status / avgränsningar (steg 1: grundplåt)
 
-- Mockad BankID- och Entra-inloggning – förberedd för skarp migrering.
+- Mockad BankID-inloggning (medborgare) – förberedd för skarp migrering.
+- Admin-inloggning via SAML mot fejk-SSO-IdP, med AD-gruppkontroll (`ADMIN_GROUP`).
 - Skarp Citizen 3.0-integration (personId ur `.env`).
 - MUI som komponentbibliotek tills vidare; byts senare mot Sundsvalls Kommuns
   Shared Components.
