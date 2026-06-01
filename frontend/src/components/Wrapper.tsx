@@ -18,6 +18,14 @@ import {
 } from "@mui/material";
 import { ReactElement, useState } from "react";
 import { ProfileDialog } from "./ProfileDialog";
+import { CONTENT_MAX_WIDTH } from "@/theme";
+
+// Keep the app-bar row and page content within the same centered max width.
+const contentSx = {
+  maxWidth: CONTENT_MAX_WIDTH,
+  mx: "auto",
+  px: { xs: 2, sm: 3 },
+} as const;
 
 interface WrapperProps {
   title: string;
@@ -57,8 +65,8 @@ export const Wrapper = ({
 
   return (
     <Box>
-      <AppBar position='static' sx={{ bgcolor: color }}>
-        <Toolbar>
+      <AppBar position='static' color={color}>
+        <Toolbar disableGutters sx={{ ...contentSx, width: "100%" }}>
           <Typography variant='h6' sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
@@ -104,7 +112,9 @@ export const Wrapper = ({
           </div>
         </Toolbar>
       </AppBar>
-      <Container sx={{ mt: 4 }}>{children}</Container>
+      <Container maxWidth={false} disableGutters sx={{ ...contentSx, mt: 4 }}>
+        {children}
+      </Container>
       <ProfileDialog
         onClose={handleCloseProfileDialog}
         open={open}

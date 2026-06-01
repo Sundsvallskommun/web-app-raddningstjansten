@@ -25,7 +25,7 @@ export function CitizenDashboardPage() {
         <Typography variant='h4' gutterBottom>
           Din översikt
         </Typography>
-        <Typography>{`Inlogad som ${user?.name}`}</Typography>
+        <Typography>{`Inloggad som ${user?.name}`}</Typography>
       </Box>
     </Wrapper>
   );

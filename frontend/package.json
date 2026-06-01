@@ -12,6 +12,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/noto-sans": "^5.2.5",
+    "@fontsource/noto-serif": "^5.2.5",
+    "@fontsource/source-sans-3": "^5.2.5",
     "@mui/icons-material": "^6.5.0",
     "@mui/material": "^6.5.0",
     "axios": "^1.13.2",
