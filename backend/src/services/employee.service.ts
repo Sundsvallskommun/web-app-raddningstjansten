@@ -1,4 +1,4 @@
-import { getApiBase, getApiBaseUrl, MUNICIPALITY_ID } from '@config';
+import { getApiBase, MUNICIPALITY_ID } from '@config';
 import ApiService from './api.service';
 import { PortalPersonData } from '@/data-contracts/employee/data-contracts';
 
@@ -17,8 +17,7 @@ export class EmployeeService {
     domain: string = DEFAULT_DOMAIN,
     municipalityId: string = MUNICIPALITY_ID,
   ): Promise<PortalPersonData> {
-    const base = getApiBaseUrl('employee');
-    const url = `${base}/${getApiBase('employee')}/${municipalityId}/portalpersondata/${domain}/${loginName}`;
+    const url = `${getApiBase('employee')}/${municipalityId}/portalpersondata/${domain}/${loginName}`;
     const res = await this.apiService.get<PortalPersonData>({ url });
     return res.data;
   }

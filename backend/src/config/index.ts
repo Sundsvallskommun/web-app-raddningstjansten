@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 
 config({ path: `.env.${process.env.NODE_ENV || 'development'}.local` });
 
-export { APIS, getApiBase, getApiBaseUrl } from './api-config';
+export { APIS, getApiBase } from './api-config';
 
 export const CREDENTIALS = process.env.CREDENTIALS === 'true';
 
@@ -15,8 +15,6 @@ export const {
   LOG_FORMAT,
   LOG_DIR,
   API_BASE_URL,
-  // Internal WSO2 gateway (e.g. Employee). Falls back to API_BASE_URL.
-  EMPLOYEE_API_BASE_URL,
   CLIENT_KEY,
   CLIENT_SECRET,
   MUNICIPALITY_ID,
