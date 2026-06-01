@@ -19,8 +19,11 @@ export const isEmpty = (value: string | number | object): boolean => {
 
 /**
  * Build a full URL against the WSO2 API base, trimming slashes between parts.
+ * If a single, already-absolute URL is passed (e.g. a different gateway), it is
+ * returned unchanged.
  */
 export const apiURL = (...parts: string[]): string => {
+  if (parts.length === 1 && /^https?:\/\//i.test(parts[0])) return parts[0];
   const urlParts = [API_BASE_URL, ...parts];
   return urlParts.map(pathPart => pathPart.replace(/(^\/|\/$)/g, '')).join('/');
 };

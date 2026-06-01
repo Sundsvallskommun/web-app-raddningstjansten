@@ -3,6 +3,8 @@ import { Request } from 'express';
 
 import authMiddleware from '@middlewares/auth.middleware';
 import { CitizenService } from '@services/citizen.service';
+import { EmployeeService } from '@services/employee.service';
+import { PortalPersonData } from '@/data-contracts/employee/data-contracts';
 import { maskPersonNumber } from '@utils/util';
 import { logger } from '@utils/logger';
 
@@ -14,6 +16,8 @@ interface MeResponse {
   username?: string;
   email?: string;
   groups?: string[];
+  // Admin: full employee record from Employee 2.0
+  employee?: PortalPersonData | null;
   // Citizen (Citizen 3.0) fields
   citizen: {
     givenname?: string | null;
@@ -27,21 +31,32 @@ interface MeResponse {
 @Controller()
 export class MeController {
   private readonly citizenService = new CitizenService();
+  private readonly employeeService = new EmployeeService();
 
   @Get('/me')
   @UseBefore(authMiddleware)
   async getMe(@Req() req: Request): Promise<MeResponse> {
     const user = req.session.user!;
 
-    // Admin: show the SAML profile directly (no Citizen lookup).
+    // Admin: SAML identity + full Employee 2.0 record for the login name.
     if (user.type === 'admin') {
+      let employee: PortalPersonData | null = null;
+      try {
+        if (user.username) {
+          employee = await this.employeeService.getPortalPersonData(user.username);
+        }
+      } catch (error) {
+        logger.error(`Could not fetch Employee data for ${user.username}: ${(error as Error).message}`);
+      }
+
       return {
         type: user.type,
-        name: user.name,
+        name: employee?.fullname || user.name,
         username: user.username,
-        email: user.email,
+        email: employee?.email ?? user.email,
         groups: user.groups,
         maskedPersonNumber: maskPersonNumber(user.citizenIdentifier),
+        employee,
         citizen: null,
       };
     }

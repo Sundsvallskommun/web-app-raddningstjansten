@@ -10,9 +10,10 @@ Tjänsten har två ingångar:
 | Medborgare    | `/`              | BankID (mock, format-kompatibel)            |
 | Administratör | `/admin`         | SAML mot fejk-SSO-IdP (samma som dispatch)  |
 
-Medborgar-dashboarden hämtar data om den inloggade från **Citizen 3.0** via WSO2
-(test-miljö). Admin-dashboarden visar SAML-profilen (namn, e-post, grupper).
-Personnummer maskas alltid i BFF:n innan det når frontend.
+Medborgar-dashboarden hämtar data om den inloggade från **Citizen 3.0** (extern
+gateway) via WSO2. Admin-dashboarden visar SAML-grupperna plus den inloggades
+**Employee 2.0**-post (`portalpersondata`, intern gateway). Personnummer maskas
+alltid i BFF:n innan det når frontend.
 
 Admin-inloggningen sker via SAML mot [`web-app-fake-sso-idp`](https://github.com/Sundsvallskommun/web-app-fake-sso-idp)
 och behörighet styrs av AD-gruppmedlemskap (`ADMIN_GROUP`).
@@ -89,7 +90,8 @@ serveras av nginx (port `80`) och proxar `/api` vidare till backend-servicen.
 
 - Mockad BankID-inloggning (medborgare) – förberedd för skarp migrering.
 - Admin-inloggning via SAML mot fejk-SSO-IdP, med AD-gruppkontroll (`ADMIN_GROUP`).
-- Skarp Citizen 3.0-integration (personId ur `.env`).
+- Skarp Citizen 3.0-integration (medborgare, personId ur `.env`).
+- Skarp Employee 2.0-integration (admin, `portalpersondata` via intern gateway).
 - MUI som komponentbibliotek tills vidare; byts senare mot Sundsvalls Kommuns
   Shared Components.
 - Ingen DB, Redis, SAML eller CI/CD ännu.
