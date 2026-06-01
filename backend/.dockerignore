@@ -1,0 +1,11 @@
+node_modules
+dist
+.vscode
+.env
+.env.*
+!.env.example.local
+Dockerfile
+.dockerignore
+data/logs
+npm-debug.log
+yarn-error.log

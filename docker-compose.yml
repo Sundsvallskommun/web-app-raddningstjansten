@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: raddningstjansten-backend
+    ports:
+      - "${BACKEND_PORT:-3001}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      BASE_URL_PREFIX: ${BASE_URL_PREFIX:-/api}
+      SECRET_KEY: ${SECRET_KEY:?err}
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+      CREDENTIALS: ${CREDENTIALS:-true}
+      API_BASE_URL: ${API_BASE_URL:?err}
+      CLIENT_KEY: ${CLIENT_KEY:?err}
+      CLIENT_SECRET: ${CLIENT_SECRET:?err}
+      MUNICIPALITY_ID: ${MUNICIPALITY_ID:-2281}
+      CITIZEN_PERSON_ID: ${CITIZEN_PERSON_ID:?err}
+      CITIZEN_PERSON_NUMBER: ${CITIZEN_PERSON_NUMBER:?err}
+      CITIZEN_NAME: ${CITIZEN_NAME:-Test Testsson}
+      ADMIN_PERSON_ID: ${ADMIN_PERSON_ID:?err}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin Adminsson}
+    networks:
+      - raddningstjansten
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: raddningstjansten-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      # Host the nginx proxy forwards /api to (the backend service)
+      BACKEND_URL: ${BACKEND_URL:-http://backend:3000}
+    depends_on:
+      - backend
+    networks:
+      - raddningstjansten
+
+networks:
+  raddningstjansten:
+    driver: bridge
