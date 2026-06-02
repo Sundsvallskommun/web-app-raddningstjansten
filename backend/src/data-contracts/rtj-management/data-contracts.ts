@@ -59,3 +59,12 @@ export interface FindErrandsResponse {
   errands?: Errand[];
   _meta?: PagingAndSortingMetaData;
 }
+
+export interface Attachment {
+  id?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  created?: string;
+  modified?: string;
+}

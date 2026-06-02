@@ -21,8 +21,14 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { AddCircleOutline, DeleteOutline, InfoOutlined } from '@mui/icons-material';
-import { apiService, createErrand, fetchEngagements, type Engagement } from '@/api/api-service';
+import { AddCircleOutline, DeleteOutline, InfoOutlined, UploadFileOutlined } from '@mui/icons-material';
+import {
+  apiService,
+  createErrand,
+  fetchEngagements,
+  uploadAttachment,
+  type Engagement,
+} from '@/api/api-service';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ObjektInfoDialog } from '@/components/ObjektInfoDialog';
@@ -100,9 +106,19 @@ export function ErrandFormPage() {
   const [eldstader, setEldstader] = useState<Eldstad[]>([emptyEldstad()]);
   const [ovrigt, setOvrigt] = useState('');
 
+  // Bilagor
+  const [files, setFiles] = useState<File[]>([]);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [objektInfoOpen, setObjektInfoOpen] = useState(false);
+
+  const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    setFiles(prev => [...prev, ...selected]);
+    e.target.value = ''; // allow re-selecting the same file
+  };
+  const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx));
 
   useEffect(() => {
     fetchEngagements()
@@ -150,7 +166,7 @@ export function ErrandFormPage() {
               organizationName: chosen.name,
             } as const);
 
-      await createErrand({
+      const { id } = await createErrand({
         firstName,
         lastName,
         email,
@@ -161,6 +177,25 @@ export function ErrandFormPage() {
         description: buildDescription(fastighetsbeteckning, eldstader, ovrigt),
         representation: rep,
       });
+
+      // Upload each document as its own request (not a batch).
+      const failed: string[] = [];
+      for (const file of files) {
+        try {
+          await uploadAttachment(id, file);
+        } catch {
+          failed.push(file.name);
+        }
+      }
+      if (failed.length > 0) {
+        setError(
+          `Ansökan skapades, men dessa bilagor kunde inte laddas upp: ${failed.join(', ')}. ` +
+            'Du kan försöka igen senare.',
+        );
+        setSubmitting(false);
+        return;
+      }
+
       navigate('/errands', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte skicka ansökan.');
@@ -325,6 +360,46 @@ export function ErrandFormPage() {
                 rows={3}
                 fullWidth
               />
+
+              <Divider />
+
+              <Typography variant="h6">Bilagor</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Bifoga t.ex. kopia av kursbevis för genomförd sotningsutbildning. Tillåtna filtyper:
+                pdf, jpg, jpeg, doc, docx. Varje fil laddas upp separat.
+              </Typography>
+              <Box>
+                <Button component="label" variant="outlined" startIcon={<UploadFileOutlined />}>
+                  Välj filer
+                  <input
+                    hidden
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.doc,.docx"
+                    onChange={onFilesSelected}
+                  />
+                </Button>
+              </Box>
+              {files.length > 0 && (
+                <Stack spacing={0.5}>
+                  {files.map((f, i) => (
+                    <Stack
+                      key={`${f.name}-${i}`}
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1.5, py: 0.5 }}
+                    >
+                      <Typography variant="body2" noWrap sx={{ mr: 1 }}>
+                        {f.name} ({Math.round(f.size / 1024)} kB)
+                      </Typography>
+                      <IconButton size="small" aria-label="Ta bort fil" onClick={() => removeFile(i)}>
+                        <DeleteOutline fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
 
               <Box>
                 <Button type="submit" variant="contained" size="large" disabled={submitting}>

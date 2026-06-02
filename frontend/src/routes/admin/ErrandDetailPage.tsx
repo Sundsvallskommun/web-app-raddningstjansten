@@ -11,14 +11,22 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack, DownloadOutlined } from '@mui/icons-material';
 
 const gridSx = {
   display: 'grid',
   gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' },
   gap: 2,
 } as const;
-import { fetchErrand, fetchStakeholders, type Errand, type Stakeholder } from '@/api/api-service';
+import {
+  attachmentDownloadUrl,
+  fetchAttachments,
+  fetchErrand,
+  fetchStakeholders,
+  type Attachment,
+  type Errand,
+  type Stakeholder,
+} from '@/api/api-service';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
@@ -42,14 +50,20 @@ export function ErrandDetailPage() {
   const { user } = useAuth();
   const [errand, setErrand] = useState<Errand | null>(null);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([fetchErrand(id), fetchStakeholders(id).catch(() => [])])
-      .then(([e, s]) => {
+    Promise.all([
+      fetchErrand(id),
+      fetchStakeholders(id).catch(() => []),
+      fetchAttachments(id).catch(() => []),
+    ])
+      .then(([e, s, a]) => {
         setErrand(e);
         setStakeholders(s);
+        setAttachments(a);
       })
       .catch(() => setErrand(null))
       .finally(() => setLoading(false));
@@ -126,6 +140,44 @@ export function ErrandDetailPage() {
                   </CardContent>
                 </Card>
               ))
+            )}
+
+            <Typography variant="h6">Bilagor</Typography>
+            {attachments.length === 0 ? (
+              <Typography color="text.secondary">Inga bilagor.</Typography>
+            ) : (
+              <Stack spacing={1}>
+                {attachments.map(a => (
+                  <Card key={a.id} variant="outlined">
+                    <CardContent
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 2,
+                        '&:last-child': { pb: 2 },
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography noWrap>{a.fileName ?? a.id}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {[a.mimeType, a.fileSize ? `${Math.round(a.fileSize / 1024)} kB` : null]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Typography>
+                      </Box>
+                      <Button
+                        href={attachmentDownloadUrl(id!, a.id!)}
+                        download
+                        startIcon={<DownloadOutlined />}
+                        sx={{ flexShrink: 0 }}
+                      >
+                        Ladda ner
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
             )}
           </Stack>
         )}

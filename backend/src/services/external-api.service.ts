@@ -8,13 +8,15 @@ export interface ExternalResponse<T> {
   data: T;
   status: number;
   location?: string;
+  contentType?: string;
+  contentDisposition?: string;
 }
 
 /**
  * Axios wrapper for talking DIRECTLY to a service that is NOT behind WSO2
- * (e.g. rtj-management in Dokploy). Unlike ApiService it never attaches a
- * Bearer token. Pass a full base URL in the constructor; service methods pass
- * the path relative to it.
+ * (e.g. rtj-management in Dokploy). Never attaches a Bearer token. Supports
+ * JSON, multipart uploads (pass a form-data instance + its headers) and binary
+ * downloads (pass responseType: 'arraybuffer').
  */
 class ExternalApiService {
   private instance: AxiosInstance;
@@ -26,8 +28,9 @@ class ExternalApiService {
       maxBodyLength: Infinity,
     });
     this.instance.interceptors.request.use(request => {
-      request.headers.set('Content-Type', 'application/json');
-      request.headers.set('Accept', 'application/json');
+      // Don't force Content-Type: axios sets application/json for plain objects
+      // and multipart (with boundary) when a form-data instance is passed.
+      if (!request.headers.get('Accept')) request.headers.set('Accept', 'application/json');
       request.headers.set('X-Request-Id', randomUUID());
       return request;
     });
@@ -36,18 +39,22 @@ class ExternalApiService {
   private async request<T>(config: AxiosRequestConfig): Promise<ExternalResponse<T>> {
     try {
       const res = await this.instance(config);
-      const location = (res.headers?.location as string) ?? undefined;
-      return { data: res.data, status: res.status, location };
+      const headers = res.headers ?? {};
+      return {
+        data: res.data,
+        status: res.status,
+        location: (headers.location as string) ?? undefined,
+        contentType: (headers['content-type'] as string) ?? undefined,
+        contentDisposition: (headers['content-disposition'] as string) ?? undefined,
+      };
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const err = error as AxiosError<{ detail?: string; title?: string }>;
         const status = err.response?.status ?? 500;
-        const message = err.response?.data?.detail ?? err.response?.data?.title ?? err.message;
-        // Log the full upstream response body to make the root cause unmistakable.
-        const rawBody =
-          typeof err.response?.data === 'string'
-            ? err.response?.data
-            : JSON.stringify(err.response?.data ?? {});
+        const data = err.response?.data;
+        const message =
+          (typeof data === 'object' && (data?.detail ?? data?.title)) || err.message;
+        const rawBody = typeof data === 'string' ? data : JSON.stringify(data ?? {});
         logger.error(
           `External API ${config.method} ${config.url} failed: ${status} ${message} | body=${rawBody}`,
         );

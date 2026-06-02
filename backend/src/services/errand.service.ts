@@ -1,6 +1,13 @@
+import FormData from 'form-data';
 import { MUNICIPALITY_ID, RTJ_MANAGEMENT_BASE_URL, RTJ_NAMESPACE } from '@config';
-import ExternalApiService from './external-api.service';
-import { Errand, FindErrandsResponse, Stakeholder } from '@/data-contracts/rtj-management/data-contracts';
+import ExternalApiService, { ExternalResponse } from './external-api.service';
+import { Attachment, Errand, FindErrandsResponse, Stakeholder } from '@/data-contracts/rtj-management/data-contracts';
+
+export interface UploadFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+}
 
 const namespace = () => RTJ_NAMESPACE || 'EGENSOTNING';
 
@@ -55,5 +62,29 @@ export class ErrandService {
   public async getStakeholders(errandId: string): Promise<Stakeholder[]> {
     const res = await this.api.get<Stakeholder[]>(`${this.base()}/${errandId}/stakeholders`);
     return res.data;
+  }
+
+  // ---- Attachments ----
+
+  /** Upload a single attachment (multipart/form-data, field name "file"). */
+  public async addAttachment(errandId: string, file: UploadFile): Promise<void> {
+    const form = new FormData();
+    form.append('file', file.buffer, { filename: file.originalname, contentType: file.mimetype });
+    await this.api.post(`${this.base()}/${errandId}/attachments`, form, { headers: form.getHeaders() });
+  }
+
+  public async listAttachments(errandId: string): Promise<Attachment[]> {
+    const res = await this.api.get<Attachment[]>(`${this.base()}/${errandId}/attachments`);
+    return res.data;
+  }
+
+  /** Download the raw file (binary) for an attachment, with its content headers. */
+  public async getAttachmentFile(
+    errandId: string,
+    attachmentId: string,
+  ): Promise<ExternalResponse<ArrayBuffer>> {
+    return this.api.get<ArrayBuffer>(`${this.base()}/${errandId}/attachments/${attachmentId}/file`, {
+      responseType: 'arraybuffer',
+    });
   }
 }

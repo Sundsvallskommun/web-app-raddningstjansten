@@ -165,3 +165,32 @@ export async function fetchStakeholders(id: string): Promise<Stakeholder[]> {
   const { data } = await apiService.get<Stakeholder[]>(`/admin/errands/${id}/stakeholders`);
   return data;
 }
+
+// ---- Attachments ----
+
+export interface Attachment {
+  id?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  created?: string;
+}
+
+/** Citizen uploads one document to their errand (one request per file). */
+export async function uploadAttachment(errandId: string, file: File): Promise<void> {
+  const form = new FormData();
+  form.append('file', file);
+  await apiService.post(`/citizen/errands/${errandId}/attachments`, form);
+}
+
+/** Admin: list attachment metadata for an errand. */
+export async function fetchAttachments(errandId: string): Promise<Attachment[]> {
+  const { data } = await apiService.get<Attachment[]>(`/admin/errands/${errandId}/attachments`);
+  return data;
+}
+
+/** Admin: direct (same-origin) URL to download an attachment's file. */
+export function attachmentDownloadUrl(errandId: string, attachmentId: string): string {
+  const base = apiService.defaults.baseURL ?? '/api';
+  return `${base}/admin/errands/${errandId}/attachments/${attachmentId}/file`;
+}

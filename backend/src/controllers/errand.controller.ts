@@ -1,13 +1,32 @@
-import { Body, Controller, Get, Param, Post, QueryParam, Req, UseBefore } from 'routing-controllers';
-import { Request } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  QueryParam,
+  Req,
+  Res,
+  UploadedFile,
+  UseBefore,
+} from 'routing-controllers';
+import { Request, Response } from 'express';
 
 import authMiddleware from '@middlewares/auth.middleware';
 import adminMiddleware from '@middlewares/admin.middleware';
 import { HttpException } from '@exceptions/HttpException';
 import { ErrandService } from '@services/errand.service';
 import { RTJ_DEFAULT_ASSIGNEE, RTJ_PROCESS_DEFINITION } from '@config';
-import { Errand, Stakeholder } from '@/data-contracts/rtj-management/data-contracts';
+import { Attachment, Errand, Stakeholder } from '@/data-contracts/rtj-management/data-contracts';
 import { logger } from '@utils/logger';
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+interface UploadedFileType {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+}
 
 interface CreateErrandBody {
   firstName: string;
@@ -127,5 +146,55 @@ export class ErrandController {
   @UseBefore(authMiddleware, adminMiddleware)
   async readStakeholders(@Param('id') id: string): Promise<Stakeholder[]> {
     return this.errandService.getStakeholders(id);
+  }
+
+  // ---- Attachments ----
+
+  /** Citizen uploads one document to their own errand (one file per request). */
+  @Post('/citizen/errands/:id/attachments')
+  @UseBefore(authMiddleware)
+  async uploadAttachment(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @UploadedFile('file', { options: { limits: { fileSize: MAX_UPLOAD_BYTES } } })
+    file: UploadedFileType,
+  ): Promise<{ status: string }> {
+    const user = req.session.user!;
+    if (user.type !== 'citizen' || !user.personNumber) {
+      throw new HttpException(403, 'FORBIDDEN');
+    }
+    if (!file) {
+      throw new HttpException(400, 'NO_FILE');
+    }
+
+    // Only allow uploading to one's own errand.
+    const errand = await this.errandService.getErrand(id);
+    if (errand.reporterUserId !== `medborgare-${user.personNumber}`) {
+      throw new HttpException(403, 'FORBIDDEN');
+    }
+
+    await this.errandService.addAttachment(id, file);
+    return { status: 'ok' };
+  }
+
+  /** Admin lists attachment metadata for an errand. */
+  @Get('/admin/errands/:id/attachments')
+  @UseBefore(authMiddleware, adminMiddleware)
+  async listAttachments(@Param('id') id: string): Promise<Attachment[]> {
+    return this.errandService.listAttachments(id);
+  }
+
+  /** Admin downloads an attachment's file. */
+  @Get('/admin/errands/:id/attachments/:attachmentId/file')
+  @UseBefore(authMiddleware, adminMiddleware)
+  async downloadAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const r = await this.errandService.getAttachmentFile(id, attachmentId);
+    res.setHeader('Content-Type', r.contentType ?? 'application/octet-stream');
+    res.setHeader('Content-Disposition', r.contentDisposition ?? `attachment; filename="${attachmentId}"`);
+    return res.send(Buffer.from(r.data));
   }
 }
