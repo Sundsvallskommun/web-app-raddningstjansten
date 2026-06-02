@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Badge,
   Box,
   CircularProgress,
   Paper,
@@ -16,6 +17,7 @@ import { fetchAdminErrands, type Errand, type PagingMeta } from '@/api/api-servi
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
+import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
 
@@ -32,7 +34,9 @@ export function AdminErrandsPage() {
     setLoading(true);
     fetchAdminErrands(page, size)
       .then(res => {
-        setErrands(res.errands ?? []);
+        const list = res.errands ?? [];
+        baselineSeen(list);
+        setErrands(list);
         setMeta(res._meta ?? {});
       })
       .catch(() => setErrands([]))
@@ -85,7 +89,11 @@ export function AdminErrandsPage() {
                       sx={{ cursor: 'pointer' }}
                       onClick={() => navigate(`/admin/errands/${e.id}`)}
                     >
-                      <TableCell>{e.errandNumber ?? e.id?.slice(0, 8)}</TableCell>
+                      <TableCell>
+                        <Badge color="error" variant="dot" invisible={!isUpdated(e.id, e.modified)}>
+                          <span>{e.errandNumber ?? e.id?.slice(0, 8)}</span>
+                        </Badge>
+                      </TableCell>
                       <TableCell>{e.title}</TableCell>
                       <TableCell>
                         <ErrandStatusChip status={e.status} />

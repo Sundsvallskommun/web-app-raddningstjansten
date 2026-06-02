@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Badge,
   Box,
   Button,
   CircularProgress,
@@ -17,6 +18,7 @@ import { apiService, fetchMyErrands, type Errand } from '@/api/api-service';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
+import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
 
@@ -28,7 +30,10 @@ export function MyErrandsPage() {
 
   useEffect(() => {
     fetchMyErrands()
-      .then(setErrands)
+      .then(list => {
+        baselineSeen(list);
+        setErrands(list);
+      })
       .catch(() => setErrands([]))
       .finally(() => setLoading(false));
   }, []);
@@ -77,8 +82,17 @@ export function MyErrandsPage() {
               </TableHead>
               <TableBody>
                 {errands.map(e => (
-                  <TableRow key={e.id}>
-                    <TableCell>{e.errandNumber ?? e.id?.slice(0, 8)}</TableCell>
+                  <TableRow
+                    key={e.id}
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/errands/${e.id}`)}
+                  >
+                    <TableCell>
+                      <Badge color="error" variant="dot" invisible={!isUpdated(e.id, e.modified)}>
+                        <span>{e.errandNumber ?? e.id?.slice(0, 8)}</span>
+                      </Badge>
+                    </TableCell>
                     <TableCell>{e.title}</TableCell>
                     <TableCell>
                       <ErrandStatusChip status={e.status} />

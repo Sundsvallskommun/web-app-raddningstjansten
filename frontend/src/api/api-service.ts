@@ -76,21 +76,7 @@ export async function fetchEngagements(): Promise<Engagement[]> {
   return data;
 }
 
-// ---- Errands (egensotning) ----
-
-export interface CreateErrandInput {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  address: string;
-  zipCode?: string;
-  city?: string;
-  description: string;
-  representation:
-    | { type: 'PRIVATE' }
-    | { type: 'COMPANY'; organizationNumber: string; organizationName: string };
-}
+// ---- Errands (egensotning v2.2) ----
 
 export interface Errand {
   id?: string;
@@ -128,6 +114,63 @@ export interface Stakeholder {
   contactChannels?: ContactChannel[];
 }
 
+export interface Sotningsobjekt {
+  id?: string;
+  typ?: string;
+  fabrikat?: string;
+  tillverkningsar?: number;
+  bransleslag?: string;
+  branslemangd?: string;
+  sotningsintervallVeckor?: number;
+}
+
+export interface EgensotningDetails {
+  bilagaPresent?: boolean;
+  registeredAtProperty?: boolean;
+  reapplicationOk?: boolean;
+  lastOutcome?: string;
+  manualReviewReason?: string;
+  lastVerifiedAt?: string;
+  personnummer?: string;
+  fastighetsbeteckning?: string;
+  propertyAddress?: string;
+}
+
+export interface Decision {
+  id?: string;
+  decisionType?: string;
+  value?: string;
+  description?: string;
+  createdBy?: string;
+  created?: string;
+}
+
+export interface StatusHistoryEntry {
+  id?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  changedBy?: string;
+  changedAt?: string;
+}
+
+export interface Attachment {
+  id?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  created?: string;
+}
+
+export interface ErrandDetail {
+  errand: Errand;
+  details: EgensotningDetails | null;
+  sotningsobjekt: Sotningsobjekt[];
+  stakeholders: Stakeholder[];
+  attachments: Attachment[];
+  statusHistory: StatusHistoryEntry[];
+  decisions: Decision[];
+}
+
 export interface PagingMeta {
   page?: number;
   limit?: number;
@@ -141,8 +184,39 @@ export interface FindErrandsResponse {
   _meta?: PagingMeta;
 }
 
-export async function createErrand(input: CreateErrandInput): Promise<{ id: string }> {
-  const { data } = await apiService.post<{ id: string }>('/citizen/errands', input);
+export interface SotningsobjektInput {
+  typ: string;
+  fabrikat?: string;
+  tillverkningsar?: number;
+  bransleslag?: string;
+  branslemangd?: string;
+  sotningsintervallVeckor?: number;
+}
+
+export interface EgensotningApplicationInput {
+  applicantEmail: string;
+  fastighetsbeteckning: string;
+  sotningsobjekt: SotningsobjektInput[];
+  propertyAddress?: string;
+  applicantFirstName?: string;
+  applicantLastName?: string;
+  applicantAddress?: string;
+  applicantZipCode?: string;
+  applicantCity?: string;
+  applicantCountry?: string;
+  applicantPhone?: string;
+  description?: string;
+}
+
+/** Single-call submission: JSON `application` part + one or more `files`. */
+export async function submitApplication(
+  application: EgensotningApplicationInput,
+  files: File[],
+): Promise<{ id: string }> {
+  const form = new FormData();
+  form.append('application', new Blob([JSON.stringify(application)], { type: 'application/json' }));
+  for (const file of files) form.append('files', file);
+  const { data } = await apiService.post<{ id: string }>('/citizen/applications', form);
   return data;
 }
 
@@ -156,41 +230,34 @@ export async function fetchAdminErrands(page = 0, size = 20): Promise<FindErrand
   return data;
 }
 
-export async function fetchErrand(id: string): Promise<Errand> {
-  const { data } = await apiService.get<Errand>(`/admin/errands/${id}`);
+export async function fetchCitizenErrand(id: string): Promise<ErrandDetail> {
+  const { data } = await apiService.get<ErrandDetail>(`/citizen/errands/${id}`);
   return data;
 }
 
-export async function fetchStakeholders(id: string): Promise<Stakeholder[]> {
-  const { data } = await apiService.get<Stakeholder[]>(`/admin/errands/${id}/stakeholders`);
-  return data;
-}
-
-// ---- Attachments ----
-
-export interface Attachment {
-  id?: string;
-  fileName?: string;
-  mimeType?: string;
-  fileSize?: number;
-  created?: string;
-}
-
-/** Citizen uploads one document to their errand (one request per file). */
-export async function uploadAttachment(errandId: string, file: File): Promise<void> {
+/** Citizen supplements an errand awaiting completion: upload file(s) + re-verify. */
+export async function supplementErrand(id: string, files: File[]): Promise<void> {
   const form = new FormData();
-  form.append('file', file);
-  await apiService.post(`/citizen/errands/${errandId}/attachments`, form);
+  for (const file of files) form.append('files', file);
+  await apiService.post(`/citizen/errands/${id}/supplement`, form);
 }
 
-/** Admin: list attachment metadata for an errand. */
-export async function fetchAttachments(errandId: string): Promise<Attachment[]> {
-  const { data } = await apiService.get<Attachment[]>(`/admin/errands/${errandId}/attachments`);
+export async function fetchAdminErrand(id: string): Promise<ErrandDetail> {
+  const { data } = await apiService.get<ErrandDetail>(`/admin/errands/${id}`);
   return data;
 }
 
-/** Admin: direct (same-origin) URL to download an attachment's file. */
-export function attachmentDownloadUrl(errandId: string, attachmentId: string): string {
-  const base = apiService.defaults.baseURL ?? '/api';
-  return `${base}/admin/errands/${errandId}/attachments/${attachmentId}/file`;
+/** Admin approves/rejects an errand in manual review. */
+export async function adminDecision(id: string, approved: boolean): Promise<void> {
+  await apiService.post(`/admin/errands/${id}/decision`, { approved });
+}
+
+const baseUrl = () => apiService.defaults.baseURL ?? '/api';
+
+export function citizenAttachmentDownloadUrl(errandId: string, attachmentId: string): string {
+  return `${baseUrl()}/citizen/errands/${errandId}/attachments/${attachmentId}/file`;
+}
+
+export function adminAttachmentDownloadUrl(errandId: string, attachmentId: string): string {
+  return `${baseUrl()}/admin/errands/${errandId}/attachments/${attachmentId}/file`;
 }

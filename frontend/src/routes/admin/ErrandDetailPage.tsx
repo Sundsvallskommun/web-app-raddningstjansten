@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -11,25 +12,25 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { ArrowBack, DownloadOutlined } from '@mui/icons-material';
+import { ArrowBack, CheckCircleOutline, CancelOutlined, DownloadOutlined } from '@mui/icons-material';
+import {
+  adminAttachmentDownloadUrl,
+  adminDecision,
+  fetchAdminErrand,
+  type ErrandDetail,
+} from '@/api/api-service';
+import { useAuth } from '@/auth/AuthContext';
+import { Wrapper } from '@/components/Wrapper';
+import { ErrandStatusChip, statusLabel } from '@/components/ErrandStatusChip';
+import { StatusStepper } from '@/components/StatusStepper';
+import { markSeen } from '@/utils/seenErrands';
+import { outcomeMessage } from '@/utils/egensotning';
 
 const gridSx = {
   display: 'grid',
   gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' },
   gap: 2,
 } as const;
-import {
-  attachmentDownloadUrl,
-  fetchAttachments,
-  fetchErrand,
-  fetchStakeholders,
-  type Attachment,
-  type Errand,
-  type Stakeholder,
-} from '@/api/api-service';
-import { useAuth } from '@/auth/AuthContext';
-import { Wrapper } from '@/components/Wrapper';
-import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 
 const fmt = (s?: string) => (s ? new Date(s).toLocaleString('sv-SE') : '—');
 
@@ -44,44 +45,77 @@ function Field({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+interface AuditItem {
+  at?: string;
+  actor: string;
+  text: string;
+}
+
 export function ErrandDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [errand, setErrand] = useState<Errand | null>(null);
-  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [data, setData] = useState<ErrandDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    try {
+      const d = await fetchAdminErrand(id);
+      setData(d);
+      markSeen(d.errand.id, d.errand.modified);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    if (!id) return;
-    Promise.all([
-      fetchErrand(id),
-      fetchStakeholders(id).catch(() => []),
-      fetchAttachments(id).catch(() => []),
-    ])
-      .then(([e, s, a]) => {
-        setErrand(e);
-        setStakeholders(s);
-        setAttachments(a);
-      })
-      .catch(() => setErrand(null))
-      .finally(() => setLoading(false));
-  }, [id]);
+    void load();
+  }, [load]);
 
   function logout() {
     window.location.href = '/api/saml/logout';
   }
 
+  async function decide(approved: boolean) {
+    if (!id) return;
+    setActing(true);
+    setActionMsg(null);
+    try {
+      await adminDecision(id, approved);
+      setActionMsg(approved ? 'Ärendet godkändes.' : 'Ärendet avslogs.');
+      await load();
+    } catch (e) {
+      setActionMsg(e instanceof Error ? e.message : 'Åtgärden misslyckades.');
+    } finally {
+      setActing(false);
+    }
+  }
+
+  const outcome = data ? outcomeMessage(data.details) : null;
+  const inReview = data?.errand.status === 'UNDER_MANUAL_REVIEW';
+
+  const audit: AuditItem[] = data
+    ? [
+        ...data.statusHistory.map(h => ({
+          at: h.changedAt,
+          actor: h.changedBy || 'System',
+          text: `Status: ${statusLabel(h.fromStatus)} → ${statusLabel(h.toStatus)}`,
+        })),
+        ...data.decisions.map(d => ({
+          at: d.created,
+          actor: d.createdBy || 'System',
+          text: `Beslut: ${d.value ?? d.decisionType ?? ''}${d.description ? ` – ${d.description}` : ''}`,
+        })),
+      ].sort((a, b) => (a.at ?? '').localeCompare(b.at ?? ''))
+    : [];
+
   return (
-    <Wrapper
-      title="Räddningstjänsten Medelpad - Ärende"
-      logout={logout}
-      color="secondary"
-      user={user}
-      showNav
-      navType="admin"
-    >
+    <Wrapper title="Räddningstjänsten Medelpad - Ärende" logout={logout} color="secondary" user={user} showNav navType="admin">
       <Box>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/admin/errands')} sx={{ mb: 2 }}>
           Tillbaka
@@ -91,42 +125,100 @@ export function ErrandDetailPage() {
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
           </Box>
-        ) : !errand ? (
+        ) : !data ? (
           <Typography>Ärendet kunde inte hämtas.</Typography>
         ) : (
           <Stack spacing={2}>
             <Paper sx={{ p: 3 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="h5">{errand.title}</Typography>
-                <ErrandStatusChip status={errand.status} />
+                <Typography variant="h5">{data.errand.title}</Typography>
+                <ErrandStatusChip status={data.errand.status} />
               </Stack>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                {errand.errandNumber ?? errand.id}
+                {data.errand.errandNumber ?? data.errand.id}
               </Typography>
+              {outcome && <Alert severity={outcome.severity} sx={{ my: 1 }}>{outcome.text}</Alert>}
               <Divider sx={{ my: 2 }} />
               <Box sx={gridSx}>
-                <Field label="Typ" value={errand.typeSlug} />
-                <Field label="Prioritet" value={errand.priority} />
-                <Field label="Sökandes e-post" value={errand.applicantEmail} />
-                <Field label="Rapportör" value={errand.reporterUserId} />
-                <Field label="Handläggare" value={errand.assignedUserId} />
-                <Field label="Inskickat" value={fmt(errand.created)} />
+                <Field label="Sökandes e-post" value={data.errand.applicantEmail} />
+                <Field label="Rapportör" value={data.errand.reporterUserId} />
+                <Field label="Handläggare" value={data.errand.assignedUserId} />
+                <Field label="Fastighetsbeteckning" value={data.details?.fastighetsbeteckning} />
+                <Field label="Fastighetsadress" value={data.details?.propertyAddress} />
+                <Field label="Inskickat" value={fmt(data.errand.created)} />
               </Box>
-              <Divider sx={{ my: 2 }} />
-              <Field label="Beskrivning" value={errand.description} />
+
+              {inReview && (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <Typography variant="subtitle2" gutterBottom>
+                    Manuell granskning — fatta beslut
+                  </Typography>
+                  {actionMsg && <Alert severity="info" sx={{ mb: 1 }}>{actionMsg}</Alert>}
+                  <Stack direction="row" spacing={2}>
+                    <Button variant="contained" color="success" startIcon={<CheckCircleOutline />} disabled={acting} onClick={() => decide(true)}>
+                      Godkänn
+                    </Button>
+                    <Button variant="outlined" color="error" startIcon={<CancelOutlined />} disabled={acting} onClick={() => decide(false)}>
+                      Avslå
+                    </Button>
+                  </Stack>
+                </>
+              )}
             </Paper>
 
-            <Typography variant="h6">Intressenter</Typography>
-            {stakeholders.length === 0 ? (
-              <Typography color="text.secondary">Inga intressenter registrerade.</Typography>
+            <Typography variant="h6">Handläggning</Typography>
+            <Paper sx={{ p: 2 }}>
+              <StatusStepper statusHistory={data.statusHistory} createdAt={data.errand.created} />
+            </Paper>
+
+            <Typography variant="h6">Händelselogg</Typography>
+            <Paper sx={{ p: 2 }}>
+              {audit.length === 0 ? (
+                <Typography color="text.secondary">Inga händelser ännu.</Typography>
+              ) : (
+                <Stack spacing={1.5}>
+                  {audit.map((a, i) => (
+                    <Box key={i} sx={{ borderLeft: '3px solid', borderColor: 'divider', pl: 1.5 }}>
+                      <Typography variant="body2">{a.text}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {fmt(a.at)} · {a.actor}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
+
+            <Typography variant="h6">Sotningsobjekt</Typography>
+            {data.sotningsobjekt.length === 0 ? (
+              <Typography color="text.secondary">Inga objekt.</Typography>
             ) : (
-              stakeholders.map(s => (
+              data.sotningsobjekt.map(o => (
+                <Card key={o.id} variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1">{o.typ}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {[o.fabrikat, o.tillverkningsar, o.bransleslag, o.branslemangd, o.sotningsintervallVeckor ? `var ${o.sotningsintervallVeckor}:e vecka` : null]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+
+            <Typography variant="h6">Intressenter</Typography>
+            {data.stakeholders.length === 0 ? (
+              <Typography color="text.secondary">Inga intressenter.</Typography>
+            ) : (
+              data.stakeholders.map(s => (
                 <Card key={s.id} variant="outlined">
                   <CardContent>
                     <Typography variant="subtitle1">
                       {s.organizationName || `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || '—'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>
+                    <Typography variant="caption" color="text.secondary">
                       {s.role} · {s.externalIdType}
                     </Typography>
                     <Box sx={{ ...gridSx, mt: 0.5 }}>
@@ -143,35 +235,20 @@ export function ErrandDetailPage() {
             )}
 
             <Typography variant="h6">Bilagor</Typography>
-            {attachments.length === 0 ? (
+            {data.attachments.length === 0 ? (
               <Typography color="text.secondary">Inga bilagor.</Typography>
             ) : (
               <Stack spacing={1}>
-                {attachments.map(a => (
+                {data.attachments.map(a => (
                   <Card key={a.id} variant="outlined">
-                    <CardContent
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 2,
-                        '&:last-child': { pb: 2 },
-                      }}
-                    >
+                    <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, '&:last-child': { pb: 2 } }}>
                       <Box sx={{ minWidth: 0 }}>
                         <Typography noWrap>{a.fileName ?? a.id}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {[a.mimeType, a.fileSize ? `${Math.round(a.fileSize / 1024)} kB` : null]
-                            .filter(Boolean)
-                            .join(' · ')}
+                          {[a.mimeType, a.fileSize ? `${Math.round(a.fileSize / 1024)} kB` : null].filter(Boolean).join(' · ')}
                         </Typography>
                       </Box>
-                      <Button
-                        href={attachmentDownloadUrl(id!, a.id!)}
-                        download
-                        startIcon={<DownloadOutlined />}
-                        sx={{ flexShrink: 0 }}
-                      >
+                      <Button href={adminAttachmentDownloadUrl(id!, a.id!)} download startIcon={<DownloadOutlined />} sx={{ flexShrink: 0 }}>
                         Ladda ner
                       </Button>
                     </CardContent>

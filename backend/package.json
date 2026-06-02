@@ -8,7 +8,8 @@
     "start": "cross-env NODE_ENV=production node dist/server.js",
     "dev": "cross-env NODE_ENV=development nodemon",
     "build": "tsc && tsc-alias",
-    "type-check": "tsc --pretty --noEmit"
+    "type-check": "tsc --pretty --noEmit",
+    "cleanup:orphans": "node scripts/cleanup-orphan-errands.mjs"
   },
   "dependencies": {
     "@node-saml/passport-saml": "^5.1.0",
