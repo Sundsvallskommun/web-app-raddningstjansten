@@ -43,10 +43,17 @@ class ExternalApiService {
         const err = error as AxiosError<{ detail?: string; title?: string }>;
         const status = err.response?.status ?? 500;
         const message = err.response?.data?.detail ?? err.response?.data?.title ?? err.message;
-        logger.error(`External API ${config.method} ${config.url} failed: ${status} ${message}`);
+        // Log the full upstream response body to make the root cause unmistakable.
+        const rawBody =
+          typeof err.response?.data === 'string'
+            ? err.response?.data
+            : JSON.stringify(err.response?.data ?? {});
+        logger.error(
+          `External API ${config.method} ${config.url} failed: ${status} ${message} | body=${rawBody}`,
+        );
         throw new HttpException(status === 404 ? 404 : status, message || 'External API error');
       }
-      logger.error(`External API unknown error: ${(error as Error).message}`);
+      logger.error(`External API unknown error: ${(error as Error).stack ?? (error as Error).message}`);
       throw new HttpException(500, 'External API error');
     }
   }
