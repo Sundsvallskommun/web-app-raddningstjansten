@@ -13,8 +13,11 @@ export interface CitizenInfo {
   givenname?: string | null;
   lastname?: string | null;
   gender?: string | null;
+  address?: string | null;
+  postalCode?: string | null;
   city?: string | null;
   municipality?: string | null;
+  realEstateDescription?: string | null;
 }
 
 export interface PortalPersonData {

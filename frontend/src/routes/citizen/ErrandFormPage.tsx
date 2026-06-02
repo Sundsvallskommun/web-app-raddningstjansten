@@ -84,17 +84,19 @@ export function ErrandFormPage() {
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [representation, setRepresentation] = useState<string>('PRIVATE');
 
-  // Personuppgifter
+  // Personuppgifter (förifylls från folkbokföringen via Citizen)
   const [firstName, setFirstName] = useState(user?.citizen?.givenname ?? '');
   const [lastName, setLastName] = useState(user?.citizen?.lastname ?? '');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [zipCode, setZipCode] = useState('');
+  const [address, setAddress] = useState(user?.citizen?.address ?? '');
+  const [zipCode, setZipCode] = useState(user?.citizen?.postalCode ?? '');
   const [city, setCity] = useState(user?.citizen?.city ?? '');
 
   // Uppgifter om sotningsobjekten
-  const [fastighetsbeteckning, setFastighetsbeteckning] = useState('');
+  const [fastighetsbeteckning, setFastighetsbeteckning] = useState(
+    user?.citizen?.realEstateDescription ?? '',
+  );
   const [eldstader, setEldstader] = useState<Eldstad[]>([emptyEldstad()]);
   const [ovrigt, setOvrigt] = useState('');
 

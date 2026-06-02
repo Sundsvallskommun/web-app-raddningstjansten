@@ -23,8 +23,11 @@ interface MeResponse {
     givenname?: string | null;
     lastname?: string | null;
     gender?: string | null;
+    address?: string | null;
+    postalCode?: string | null;
     city?: string | null;
     municipality?: string | null;
+    realEstateDescription?: string | null;
   } | null;
 }
 
@@ -74,8 +77,11 @@ export class MeController {
         givenname: data.givenname,
         lastname: data.lastname,
         gender: data.gender,
+        address: primaryAddress?.address ?? null,
+        postalCode: primaryAddress?.postalCode ?? null,
         city: primaryAddress?.city ?? null,
         municipality: primaryAddress?.municipality ?? null,
+        realEstateDescription: primaryAddress?.realEstateDescription ?? null,
       };
     } catch (error) {
       // Don't fail the whole dashboard if Citizen is unavailable; log and return null.
