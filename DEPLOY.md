@@ -78,12 +78,18 @@ på Dokploys interna nätverk).
 5. **Environment:**
 
    ```
-   # Intern adress till backend-servicen (service-namn + container-port)
-   BACKEND_URL=http://raddningstjansten-backend:3000
+   # Intern adress till backend-servicen.
+   # OBS: värdnamnet är backendens GENERERADE app-namn i Dokploy
+   # (format <projekt>-<service>-<slump>, t.ex. rtj-rtjbackend-pw9bi0),
+   # INTE det "snälla" namn du skrev. Hittas i backend-appens inställningar.
+   BACKEND_URL=http://rtj-rtjbackend-pw9bi0:3000
    ```
 
-6. **Deploy.**
+6. **Deploy.** (Ändrar du env senare måste frontend deployas om så nginx läser
+   in det nya `BACKEND_URL`.)
 
+> Både frontend och backend måste ligga på samma nätverk (`dokploy-network`) för
+> att namnuppslaget ska fungera – två Applications gör det normalt automatiskt.
 > Om intern DNS strular kan du istället ge backend en egen publik domän och sätta
 > `BACKEND_URL=https://<backend-domän>` – nginx är förberedd för https-upstream.
 
