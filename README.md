@@ -81,9 +81,13 @@ docker compose up --build
 
 ## Deploy (Dokploy)
 
-`frontend/` och `backend/` har var sin `Dockerfile` och skapas som separata
-services i Dokploy. Backend exponerar port `3000` i containern; frontend
-serveras av nginx (port `80`) och proxar `/api` vidare till backend-servicen.
+`frontend/` och `backend/` har var sin `Dockerfile` och skapas som två separata
+Applications i Dokploy (auto-deploy via webhook vid push till `main`). Backend
+exponeras internt (port `3000`); frontend serveras av nginx (port `80`) och
+proxar `/api` vidare till backend, så bara frontend behöver publik domän.
+
+Fullständig steg-för-steg-guide med env-variabler och webhook-setup finns i
+[`DEPLOY.md`](./DEPLOY.md).
 
 ## Status / avgränsningar (steg 1: grundplåt)
 
