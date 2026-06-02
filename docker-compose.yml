@@ -28,6 +28,11 @@ services:
       SAML_ISSUER: ${SAML_ISSUER:-web-app-raddningstjansten}
       SAML_IDP_PUBLIC_CERT: ${SAML_IDP_PUBLIC_CERT:?err}
       ADMIN_GROUP: ${ADMIN_GROUP:-Raddningstjansten-AVD-CHEFER}
+      # rtj-management errand API (no WSO2 token)
+      RTJ_MANAGEMENT_BASE_URL: ${RTJ_MANAGEMENT_BASE_URL:?err}
+      RTJ_NAMESPACE: ${RTJ_NAMESPACE:-EGENSOTNING}
+      RTJ_DEFAULT_ASSIGNEE: ${RTJ_DEFAULT_ASSIGNEE:-bsk-handlaggare}
+      RTJ_PROCESS_DEFINITION: ${RTJ_PROCESS_DEFINITION:-Hantera ansökan om egensotning}
     networks:
       - raddningstjansten
 

@@ -8,6 +8,10 @@ export const APIS = [
     name: 'employee',
     version: '2.0',
   },
+  {
+    name: 'legalentity',
+    version: '2.0',
+  },
 ] as const;
 
 type ApiName = (typeof APIS)[number]['name'];

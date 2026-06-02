@@ -22,6 +22,8 @@ const validateEnv = () => {
     SAML_ISSUER: str(),
     SAML_IDP_PUBLIC_CERT: str(),
     ADMIN_GROUP: str(),
+    // rtj-management errand API (separate service, no WSO2 token)
+    RTJ_MANAGEMENT_BASE_URL: url(),
   });
 };
 

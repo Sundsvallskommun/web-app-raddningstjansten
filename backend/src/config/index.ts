@@ -33,4 +33,9 @@ export const {
   SAML_PUBLIC_KEY,
   // Comma-separated allowlist of AD groups permitted to log in as admin
   ADMIN_GROUP,
+  // rtj-management (errand API, separate Dokploy service, no WSO2 token)
+  RTJ_MANAGEMENT_BASE_URL,
+  RTJ_NAMESPACE,
+  RTJ_DEFAULT_ASSIGNEE,
+  RTJ_PROCESS_DEFINITION,
 } = process.env;

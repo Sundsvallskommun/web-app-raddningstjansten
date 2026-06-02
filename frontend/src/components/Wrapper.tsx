@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { ReactElement, useState } from "react";
 import { ProfileDialog } from "./ProfileDialog";
+import { NavDrawer } from "./NavDrawer";
 import { CONTENT_MAX_WIDTH } from "@/theme";
 
 // Keep the app-bar row and page content within the same centered max width.
@@ -33,6 +34,8 @@ interface WrapperProps {
   color: "primary" | "secondary";
   children: ReactElement | null;
   user: Me | null;
+  showNav?: boolean;
+  navType?: "citizen" | "admin";
 }
 
 export const Wrapper = ({
@@ -41,6 +44,8 @@ export const Wrapper = ({
   color,
   children,
   user,
+  showNav = false,
+  navType = "citizen",
 }: WrapperProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
@@ -67,6 +72,7 @@ export const Wrapper = ({
     <Box>
       <AppBar position='static' color={color}>
         <Toolbar disableGutters sx={{ ...contentSx, width: "100%" }}>
+          {showNav && <NavDrawer navType={navType} />}
           <Typography variant='h6' sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
