@@ -214,7 +214,10 @@ export async function submitApplication(
   files: File[],
 ): Promise<{ id: string }> {
   const form = new FormData();
-  form.append('application', new Blob([JSON.stringify(application)], { type: 'application/json' }));
+  // Send `application` as a plain text field (not a Blob/file) so the BFF reads
+  // it via @BodyParam and multer only sees `files` as file parts. The BFF
+  // re-serializes it as application/json when forwarding to rtj-management.
+  form.append('application', JSON.stringify(application));
   for (const file of files) form.append('files', file);
   const { data } = await apiService.post<{ id: string }>('/citizen/applications', form);
   return data;

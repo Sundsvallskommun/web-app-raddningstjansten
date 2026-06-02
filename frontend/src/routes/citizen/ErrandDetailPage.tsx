@@ -27,6 +27,7 @@ import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { StatusStepper } from '@/components/StatusStepper';
 import { markSeen } from '@/utils/seenErrands';
 import { outcomeMessage } from '@/utils/egensotning';
+import { isUuid } from '@/utils/uuid';
 
 const fmt = (s?: string) => (s ? new Date(s).toLocaleString('sv-SE') : '—');
 
@@ -43,9 +44,13 @@ export function CitizenErrandDetailPage() {
   const [supplementMsg, setSupplementMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!isUuid(id)) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     try {
-      const d = await fetchCitizenErrand(id);
+      const d = await fetchCitizenErrand(id!);
       setData(d);
       markSeen(d.errand.id, d.errand.modified);
     } catch {

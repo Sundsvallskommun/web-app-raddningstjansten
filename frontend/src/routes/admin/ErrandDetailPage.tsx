@@ -25,6 +25,7 @@ import { ErrandStatusChip, statusLabel } from '@/components/ErrandStatusChip';
 import { StatusStepper } from '@/components/StatusStepper';
 import { markSeen } from '@/utils/seenErrands';
 import { outcomeMessage } from '@/utils/egensotning';
+import { isUuid } from '@/utils/uuid';
 
 const gridSx = {
   display: 'grid',
@@ -61,9 +62,13 @@ export function ErrandDetailPage() {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!isUuid(id)) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     try {
-      const d = await fetchAdminErrand(id);
+      const d = await fetchAdminErrand(id!);
       setData(d);
       markSeen(d.errand.id, d.errand.modified);
     } catch {

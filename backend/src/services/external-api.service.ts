@@ -54,10 +54,15 @@ class ExternalApiService {
         const data = err.response?.data;
         const message =
           (typeof data === 'object' && (data?.detail ?? data?.title)) || err.message;
-        const rawBody = typeof data === 'string' ? data : JSON.stringify(data ?? {});
-        logger.error(
-          `External API ${config.method} ${config.url} failed: ${status} ${message} | body=${rawBody}`,
-        );
+        const line = `External API ${config.method} ${config.url} failed: ${status} ${message}`;
+        if (status === 404) {
+          // 404 is frequently an expected "not found" the caller handles (e.g.
+          // egensotning-details on a legacy errand) — log quietly, no body spam.
+          logger.info(line);
+        } else {
+          const rawBody = typeof data === 'string' ? data : JSON.stringify(data ?? {});
+          logger.error(`${line} | body=${rawBody}`);
+        }
         throw new HttpException(status === 404 ? 404 : status, message || 'External API error');
       }
       logger.error(`External API unknown error: ${(error as Error).stack ?? (error as Error).message}`);
