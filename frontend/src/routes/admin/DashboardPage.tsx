@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 
@@ -17,9 +17,11 @@ export function AdminDashboardPage() {
       color='secondary'
       user={user}
     >
-      <Typography variant='h4' gutterBottom>
-        Din översikt
-      </Typography>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant='h4' gutterBottom>
+          Din översikt
+        </Typography>
+      </Paper>
     </Wrapper>
   );
 }

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Box, Typography } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
 import { apiService } from "@/api/api-service";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
@@ -22,10 +22,12 @@ export function CitizenDashboardPage() {
       user={user}
     >
       <Box>
-        <Typography variant='h4' gutterBottom>
-          Din översikt
-        </Typography>
-        <Typography>{`Inloggad som ${user?.name}`}</Typography>
+        <Paper sx={{ p: 4 }}>
+          <Typography variant='h4' gutterBottom>
+            Din översikt
+          </Typography>
+          <Typography>{`Inloggad som ${user?.name}`}</Typography>
+        </Paper>
       </Box>
     </Wrapper>
   );

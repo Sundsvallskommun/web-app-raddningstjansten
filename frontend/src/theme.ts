@@ -15,8 +15,10 @@ import { createTheme, type Theme } from "@mui/material/styles";
 
 const FONT_BODY =
   '"Source Sans 3", "Source Sans Pro", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const FONT_SERIF = '"Noto Serif", "Droid Serif", Georgia, "Times New Roman", serif';
-const FONT_SANS = '"Noto Sans", "Droid Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const FONT_SERIF =
+  '"Noto Serif", "Droid Serif", Georgia, "Times New Roman", serif';
+const FONT_SANS =
+  '"Noto Sans", "Droid Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 /** Max width for centered content and the inner app-bar row. */
 export const CONTENT_MAX_WIDTH = 1080;
@@ -25,14 +27,14 @@ const lightPalette = {
   mode: "light" as const,
   primary: { main: "#DA344D" },
   secondary: { main: "#F18805" },
-  background: { default: "#B6C2D9", paper: "#B6C2D9" },
+  background: { default: "#f4f4f4", paper: "#fff" },
 };
 
 const darkPalette = {
   mode: "dark" as const,
-  primary: { main: "#1B2432" },
-  secondary: { main: "#2C2B3C" },
-  background: { default: "#121420", paper: "#151515" },
+  primary: { main: "#b5005e" },
+  secondary: { main: "#9514ff" },
+  background: { default: "#181818", paper: "#060606" },
 };
 
 export const createAppTheme = (mode: "light" | "dark"): Theme =>
