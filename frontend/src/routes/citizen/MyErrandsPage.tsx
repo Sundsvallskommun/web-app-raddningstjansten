@@ -92,7 +92,7 @@ export function MyErrandsPage() {
                     </TableCell>
                     <TableCell>{e.title}</TableCell>
                     <TableCell>
-                      <ErrandStatusChip status={e.status} />
+                      <ErrandStatusChip status={e.status} audience="citizen" />
                     </TableCell>
                     <TableCell>{fmtDate(e.created)}</TableCell>
                   </TableRow>

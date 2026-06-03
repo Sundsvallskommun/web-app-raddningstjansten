@@ -24,19 +24,12 @@ export function attachmentCategoryLabel(category?: AttachmentCategory): string |
 type Severity = 'success' | 'info' | 'warning' | 'error';
 type Audience = 'citizen' | 'admin';
 
-// Reason phrasing differs by who is reading: the applicant ("du") vs a
-// handläggare looking at someone else's errand ("den sökande").
-const REASON_TEXT: Record<Audience, Record<string, string>> = {
-  citizen: {
-    NOT_REGISTERED: 'du inte är folkbokförd på fastigheten',
-    REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
-    REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
-  },
-  admin: {
-    NOT_REGISTERED: 'den sökande inte är folkbokförd på fastigheten',
-    REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
-    REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
-  },
+// Manual-review reasons are only shown to the handläggare. The applicant never
+// sees why their errand is under review — to them it is simply "being handled".
+const ADMIN_REASON_TEXT: Record<string, string> = {
+  NOT_REGISTERED: 'den sökande inte är folkbokförd på fastigheten',
+  REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
+  REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
 };
 
 /** Friendly Swedish message describing the current verification outcome. */
@@ -54,8 +47,14 @@ export function outcomeMessage(
         text: 'Något saknas i ansökan (t.ex. en bilaga). En komplettering behövs.',
       };
     case 'NEEDS_MANUAL_REVIEW': {
-      const reason =
-        REASON_TEXT[audience][details.manualReviewReason ?? ''] ?? 'ärendet kräver en manuell bedömning';
+      if (audience === 'citizen') {
+        // Neutral, non-revealing message — the applicant only sees "handläggs".
+        return {
+          severity: 'info',
+          text: 'Din ansökan handläggs. Handläggaren kan behöva kontrollera kompletterande uppgifter, till exempel om fastigheten.',
+        };
+      }
+      const reason = ADMIN_REASON_TEXT[details.manualReviewReason ?? ''] ?? 'ärendet kräver en manuell bedömning';
       return { severity: 'info', text: `Ansökan granskas manuellt eftersom ${reason}.` };
     }
     default:

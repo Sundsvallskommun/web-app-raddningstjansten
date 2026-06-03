@@ -94,6 +94,9 @@ export function CitizenErrandDetailPage() {
   const needsSupplement = data?.errand.status === "AWAITING_SUPPLEMENTATION";
   const isDecided =
     data?.errand.status === "DECIDED" || data?.errand.status === "REJECTED";
+  // Once a decision exists the beslut card tells the story — don't also show the
+  // in-progress outcome message.
+  const showOutcome = !!outcome && !isDecided;
 
   return (
     <Wrapper
@@ -132,14 +135,14 @@ export function CitizenErrandDetailPage() {
                   sx={{ mb: 1 }}
                 >
                   <Typography variant='h5'>{data.errand.title}</Typography>
-                  <ErrandStatusChip status={data.errand.status} />
+                  <ErrandStatusChip status={data.errand.status} audience='citizen' />
                 </Stack>
                 {applicantName(data.stakeholders) && (
                   <Typography variant='subtitle1'>
                     {applicantName(data.stakeholders)}
                   </Typography>
                 )}
-                {outcome && (
+                {showOutcome && outcome && (
                   <Alert severity={outcome.severity} sx={{ mt: 2 }}>
                     {outcome.text}
                   </Alert>

@@ -77,7 +77,7 @@ export function MyDecisionsPage() {
                     <TableCell>{e.errandNumber ?? e.id?.slice(0, 8)}</TableCell>
                     <TableCell>{e.title}</TableCell>
                     <TableCell>
-                      <ErrandStatusChip status={e.status} />
+                      <ErrandStatusChip status={e.status} audience="citizen" />
                     </TableCell>
                     <TableCell>{fmtDate(e.modified ?? e.created)}</TableCell>
                     <TableCell align="right">
