@@ -10,6 +10,7 @@ import {
   fetchMyErrands,
   submitApplication,
   supplementErrand,
+  type ApplicationAttachments,
   type EgensotningApplicationInput,
   type ErrandDetail,
 } from './api-service';
@@ -71,8 +72,8 @@ export function useAdminErrand(id?: string) {
 export function useSubmitApplication() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { application: EgensotningApplicationInput; files: File[] }) =>
-      submitApplication(vars.application, vars.files),
+    mutationFn: (vars: { application: EgensotningApplicationInput; attachments: ApplicationAttachments }) =>
+      submitApplication(vars.application, vars.attachments),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.myErrands }),
   });
 }

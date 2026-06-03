@@ -22,6 +22,12 @@ export interface UploadFile {
   mimetype: string;
 }
 
+/** The two typed attachments an egensotning application must include. */
+export interface ApplicationAttachments {
+  brandskyddskontroll: UploadFile;
+  utbildningsintyg: UploadFile;
+}
+
 const namespace = () => RTJ_NAMESPACE || 'EGENSOTNING';
 
 /**
@@ -41,14 +47,17 @@ export class ErrandService {
 
   /**
    * Submit a complete egensotning application in one atomic multipart call:
-   * the JSON `application` part + one or more `files`. Returns the new errand id.
+   * the JSON `application` part + the two typed file parts `brandskyddskontroll`
+   * and `utbildningsintyg` (the server tags them with the matching category).
+   * Returns the new errand id.
    */
-  public async submitApplication(application: EgensotningApplication, files: UploadFile[]): Promise<string> {
+  public async submitApplication(application: EgensotningApplication, attachments: ApplicationAttachments): Promise<string> {
     const form = new FormData();
     form.append('application', JSON.stringify(application), { contentType: 'application/json' });
-    for (const file of files) {
-      form.append('files', file.buffer, { filename: file.originalname, contentType: file.mimetype });
-    }
+    const append = (field: 'brandskyddskontroll' | 'utbildningsintyg', file: UploadFile) =>
+      form.append(field, file.buffer, { filename: file.originalname, contentType: file.mimetype });
+    append('brandskyddskontroll', attachments.brandskyddskontroll);
+    append('utbildningsintyg', attachments.utbildningsintyg);
     const res = await this.api.post<void>(`${this.nsBase()}/egensotning/applications`, form, {
       headers: form.getHeaders(),
     });

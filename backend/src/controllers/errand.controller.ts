@@ -12,6 +12,7 @@ import {
   UseBefore,
 } from 'routing-controllers';
 import { Request, Response } from 'express';
+import multer from 'multer';
 
 import authMiddleware from '@middlewares/auth.middleware';
 import adminMiddleware from '@middlewares/admin.middleware';
@@ -40,6 +41,20 @@ interface UploadedFileType {
   originalname: string;
   mimetype: string;
 }
+
+/**
+ * An egensotning application carries two typed file parts. multer's `.fields()`
+ * is used (not routing-controllers' `@UploadedFile`, whose underlying `.single()`
+ * would reject the second field as "Unexpected field"). Parsed parts land on
+ * `req.files` keyed by field name; the JSON `application` field lands on req.body.
+ */
+const applicationUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_BYTES },
+}).fields([
+  { name: 'brandskyddskontroll', maxCount: 1 },
+  { name: 'utbildningsintyg', maxCount: 1 },
+]);
 
 /** Aggregated view of everything the detail pages render. */
 interface ErrandDetail {
@@ -144,21 +159,27 @@ export class ErrandController {
 
   // ================= Citizen =================
 
-  /** Citizen submits a complete application in one multipart call (JSON + files). */
+  /**
+   * Citizen submits a complete application in one multipart call: the JSON
+   * `application` field plus the two typed file parts `brandskyddskontroll`
+   * and `utbildningsintyg` (both required).
+   */
   @Post('/citizen/applications')
-  @UseBefore(authMiddleware)
+  @UseBefore(authMiddleware, applicationUpload)
   async submitApplication(
     @Req() req: Request,
     @BodyParam('application') applicationJson: string,
-    @UploadedFiles('files', { required: false, options: { limits: { fileSize: MAX_UPLOAD_BYTES } } })
-    files: UploadedFileType[],
   ): Promise<{ id: string }> {
     const user = req.session.user!;
     if (user.type !== 'citizen' || !user.personNumber) {
       throw new HttpException(403, 'FORBIDDEN');
     }
-    if (!files || files.length === 0) {
-      throw new HttpException(400, 'At least one file (bilaga) is required');
+
+    const filesByField = req.files as Record<string, UploadedFileType[]> | undefined;
+    const brandskyddskontroll = filesByField?.brandskyddskontroll?.[0];
+    const utbildningsintyg = filesByField?.utbildningsintyg?.[0];
+    if (!brandskyddskontroll || !utbildningsintyg) {
+      throw new HttpException(400, 'Both brandskyddskontroll and utbildningsintyg are required');
     }
 
     let application: EgensotningApplication;
@@ -172,7 +193,7 @@ export class ErrandController {
     application.personnummer = user.personNumber;
     application.reporterUserId = this.citizenUserId(user);
 
-    const id = await this.errandService.submitApplication(application, files);
+    const id = await this.errandService.submitApplication(application, { brandskyddskontroll, utbildningsintyg });
     return { id };
   }
 

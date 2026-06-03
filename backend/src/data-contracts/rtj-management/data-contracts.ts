@@ -60,11 +60,20 @@ export interface FindErrandsResponse {
   _meta?: PagingAndSortingMetaData;
 }
 
+/** Category tag the server assigns to distinguish the purpose of an upload. */
+export type AttachmentCategory =
+  | 'DELEGATION'
+  | 'COMPETENCE'
+  | 'BRANDSKYDDSKONTROLL'
+  | 'UTBILDNINGSINTYG'
+  | 'OTHER';
+
 export interface Attachment {
   id?: string;
   fileName?: string;
   mimeType?: string;
   fileSize?: number;
+  category?: AttachmentCategory;
   created?: string;
   modified?: string;
 }

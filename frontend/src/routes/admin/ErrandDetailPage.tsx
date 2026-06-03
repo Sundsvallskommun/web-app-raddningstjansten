@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Divider,
   Paper,
@@ -26,7 +27,7 @@ import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip, statusLabel } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
 import { markSeen } from "@/utils/seenErrands";
-import { outcomeMessage } from "@/utils/egensotning";
+import { attachmentCategoryLabel, outcomeMessage } from "@/utils/egensotning";
 
 const gridSx = {
   display: "grid",
@@ -332,6 +333,15 @@ export function ErrandDetailPage() {
                         }}
                       >
                         <Box sx={{ minWidth: 0 }}>
+                          {attachmentCategoryLabel(a.category) && (
+                            <Chip
+                              label={attachmentCategoryLabel(a.category)}
+                              size='small'
+                              color='primary'
+                              variant='outlined'
+                              sx={{ mb: 0.5 }}
+                            />
+                          )}
                           <Typography noWrap>{a.fileName ?? a.id}</Typography>
                           <Typography variant='caption' color='text.secondary'>
                             {[

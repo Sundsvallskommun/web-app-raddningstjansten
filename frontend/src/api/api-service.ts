@@ -160,11 +160,19 @@ export interface Note {
   created?: string;
 }
 
+export type AttachmentCategory =
+  | 'DELEGATION'
+  | 'COMPETENCE'
+  | 'BRANDSKYDDSKONTROLL'
+  | 'UTBILDNINGSINTYG'
+  | 'OTHER';
+
 export interface Attachment {
   id?: string;
   fileName?: string;
   mimeType?: string;
   fileSize?: number;
+  category?: AttachmentCategory;
   created?: string;
 }
 
@@ -216,17 +224,26 @@ export interface EgensotningApplicationInput {
   description?: string;
 }
 
-/** Single-call submission: JSON `application` part + one or more `files`. */
+/** The two typed attachments an egensotning application must include. */
+export interface ApplicationAttachments {
+  brandskyddskontroll: File;
+  utbildningsintyg: File;
+}
+
+/**
+ * Single-call submission: the JSON `application` part + the two typed file parts
+ * `brandskyddskontroll` and `utbildningsintyg` (the server tags each with its
+ * matching category). `application` is sent as a plain text field so the BFF
+ * reads it via @BodyParam.
+ */
 export async function submitApplication(
   application: EgensotningApplicationInput,
-  files: File[],
+  attachments: ApplicationAttachments,
 ): Promise<{ id: string }> {
   const form = new FormData();
-  // Send `application` as a plain text field (not a Blob/file) so the BFF reads
-  // it via @BodyParam and multer only sees `files` as file parts. The BFF
-  // re-serializes it as application/json when forwarding to rtj-management.
   form.append('application', JSON.stringify(application));
-  for (const file of files) form.append('files', file);
+  form.append('brandskyddskontroll', attachments.brandskyddskontroll);
+  form.append('utbildningsintyg', attachments.utbildningsintyg);
   const { data } = await apiService.post<{ id: string }>('/citizen/applications', form);
   return data;
 }

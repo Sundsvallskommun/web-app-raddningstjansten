@@ -51,6 +51,58 @@ const gridSx = {
   gap: 2,
 } as const;
 
+/** One of the two required, typed attachment slots (BSK / utbildningsintyg). */
+function AttachmentSlot({
+  title,
+  description,
+  file,
+  onPick,
+  onClear,
+}: {
+  title: string;
+  description: string;
+  file: File | null;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}) {
+  return (
+    <Card variant="outlined" sx={{ flex: 1 }}>
+      <CardContent>
+        <Typography variant="subtitle1" gutterBottom>
+          {title} *
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: { sm: 40 } }}>
+          {description}
+        </Typography>
+        <Button
+          component="label"
+          variant={file ? 'outlined' : 'contained'}
+          startIcon={<UploadFileOutlined />}
+          fullWidth
+        >
+          {file ? 'Byt fil' : 'Välj fil'}
+          <input hidden type="file" accept=".pdf,.jpg,.jpeg,.doc,.docx" onChange={onPick} />
+        </Button>
+        {file && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ mt: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1.5, py: 0.5 }}
+          >
+            <Typography variant="body2" noWrap sx={{ mr: 1 }}>
+              {file.name} ({Math.round(file.size / 1024)} kB)
+            </Typography>
+            <IconButton size="small" aria-label="Ta bort fil" onClick={onClear}>
+              <DeleteOutline fontSize="small" />
+            </IconButton>
+          </Stack>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ErrandFormPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
@@ -74,8 +126,9 @@ export function ErrandFormPage() {
   const [objekt, setObjekt] = useState<ObjektRow[]>([emptyObjekt()]);
   const [ovrigt, setOvrigt] = useState('');
 
-  // Bilagor (minst 1 obligatoriskt)
-  const [files, setFiles] = useState<File[]>([]);
+  // Bilagor: två obligatoriska, typade dokument
+  const [brandskyddskontroll, setBrandskyddskontroll] = useState<File | null>(null);
+  const [utbildningsintyg, setUtbildningsintyg] = useState<File | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [objektInfoOpen, setObjektInfoOpen] = useState(false);
@@ -89,11 +142,10 @@ export function ErrandFormPage() {
   const addObjekt = () => setObjekt(prev => [...prev, emptyObjekt()]);
   const removeObjekt = (idx: number) => setObjekt(prev => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
 
-  const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFiles(prev => [...prev, ...Array.from(e.target.files ?? [])]);
+  const pickFile = (setter: (f: File | null) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(e.target.files?.[0] ?? null);
     e.target.value = '';
   };
-  const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx));
 
   async function logout() {
     await apiService.post('/citizen/logout');
@@ -109,8 +161,8 @@ export function ErrandFormPage() {
       setError('Välj eller ange typ för varje sotningsobjekt.');
       return;
     }
-    if (files.length === 0) {
-      setError('Du måste bifoga minst en fil (t.ex. kursbevis).');
+    if (!brandskyddskontroll || !utbildningsintyg) {
+      setError('Du måste bifoga både brandskyddskontroll och utbildningsintyg.');
       return;
     }
 
@@ -139,7 +191,7 @@ export function ErrandFormPage() {
           description: ovrigt || undefined,
           sotningsobjekt,
         },
-        files,
+        attachments: { brandskyddskontroll, utbildningsintyg },
       });
       navigate('/errands', { replace: true });
     } catch (err) {
@@ -294,35 +346,25 @@ export function ErrandFormPage() {
 
                 <Typography variant="h6">Bilagor *</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Minst en bilaga krävs (t.ex. kopia av kursbevis för genomförd sotningsutbildning).
-                  Tillåtna filtyper: pdf, jpg, jpeg, doc, docx.
+                  Två dokument krävs för en egensotningsansökan. Tillåtna filtyper: pdf, jpg, jpeg,
+                  doc, docx.
                 </Typography>
-                <Box>
-                  <Button component="label" variant="outlined" startIcon={<UploadFileOutlined />}>
-                    Välj filer
-                    <input hidden type="file" multiple accept=".pdf,.jpg,.jpeg,.doc,.docx" onChange={onFilesSelected} />
-                  </Button>
-                </Box>
-                {files.length > 0 && (
-                  <Stack spacing={0.5}>
-                    {files.map((f, i) => (
-                      <Stack
-                        key={`${f.name}-${i}`}
-                        direction="row"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1.5, py: 0.5 }}
-                      >
-                        <Typography variant="body2" noWrap sx={{ mr: 1 }}>
-                          {f.name} ({Math.round(f.size / 1024)} kB)
-                        </Typography>
-                        <IconButton size="small" aria-label="Ta bort fil" onClick={() => removeFile(i)}>
-                          <DeleteOutline fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    ))}
-                  </Stack>
-                )}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <AttachmentSlot
+                    title="Brandskyddskontroll (BSK)"
+                    description="Senaste protokoll från brandskyddskontroll av anläggningen."
+                    file={brandskyddskontroll}
+                    onPick={pickFile(setBrandskyddskontroll)}
+                    onClear={() => setBrandskyddskontroll(null)}
+                  />
+                  <AttachmentSlot
+                    title="Utbildningsintyg"
+                    description="Intyg eller kursbevis för genomförd egensotningsutbildning."
+                    file={utbildningsintyg}
+                    onPick={pickFile(setUtbildningsintyg)}
+                    onClear={() => setUtbildningsintyg(null)}
+                  />
+                </Stack>
 
                 <Box>
                   <Button type="submit" variant="contained" size="large" disabled={submit.isPending}>

@@ -1,4 +1,17 @@
-import type { EgensotningDetails } from '@/api/api-service';
+import type { AttachmentCategory, EgensotningDetails } from '@/api/api-service';
+
+// Swedish labels for the attachment category the server tags each upload with.
+const ATTACHMENT_CATEGORY_LABEL: Record<AttachmentCategory, string> = {
+  BRANDSKYDDSKONTROLL: 'Brandskyddskontroll (BSK)',
+  UTBILDNINGSINTYG: 'Utbildningsintyg',
+  DELEGATION: 'Fullmakt',
+  COMPETENCE: 'Kompetensbevis',
+  OTHER: 'Övrig bilaga',
+};
+
+export function attachmentCategoryLabel(category?: AttachmentCategory): string | null {
+  return category ? ATTACHMENT_CATEGORY_LABEL[category] ?? null : null;
+}
 
 type Severity = 'success' | 'info' | 'warning' | 'error';
 type Audience = 'citizen' | 'admin';

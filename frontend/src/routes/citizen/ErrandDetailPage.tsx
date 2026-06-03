@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Divider,
   IconButton,
@@ -26,7 +27,7 @@ import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
 import { markSeen } from "@/utils/seenErrands";
-import { outcomeMessage } from "@/utils/egensotning";
+import { attachmentCategoryLabel, outcomeMessage } from "@/utils/egensotning";
 
 const fmt = (s?: string) => (s ? new Date(s).toLocaleString("sv-SE") : "—");
 
@@ -268,7 +269,18 @@ export function CitizenErrandDetailPage() {
                           "&:last-child": { pb: 2 },
                         }}
                       >
-                        <Typography noWrap>{a.fileName ?? a.id}</Typography>
+                        <Box sx={{ minWidth: 0 }}>
+                          {attachmentCategoryLabel(a.category) && (
+                            <Chip
+                              label={attachmentCategoryLabel(a.category)}
+                              size='small'
+                              color='primary'
+                              variant='outlined'
+                              sx={{ mb: 0.5 }}
+                            />
+                          )}
+                          <Typography noWrap>{a.fileName ?? a.id}</Typography>
+                        </Box>
                         <Button
                           href={citizenAttachmentDownloadUrl(id!, a.id!)}
                           download
