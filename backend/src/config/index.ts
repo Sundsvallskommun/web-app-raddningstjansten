@@ -18,9 +18,11 @@ export const {
   CLIENT_KEY,
   CLIENT_SECRET,
   MUNICIPALITY_ID,
+  // Mock-BankID citizens: comma-separated, parallel lists of personId + personnummer.
   CITIZEN_PERSON_ID,
   CITIZEN_PERSON_NUMBER,
-  CITIZEN_NAME,
+  // Shared password required to complete the mock citizen login.
+  CITIZEN_LOGIN_PASSWORD,
   // Admin SAML (fake SSO IdP) - Service Provider config
   SAML_ENTRY_SSO,
   SAML_CALLBACK_URL,
@@ -41,3 +43,25 @@ export const {
   // Templating 2.1 (decision documents)
   EGENSOTNING_DECISION_TEMPLATE,
 } = process.env;
+
+/** A selectable mock-BankID citizen: personId (for Citizen lookups) + personnummer. */
+export interface CitizenPerson {
+  personId: string;
+  personNumber: string;
+}
+
+const splitCsv = (value?: string): string[] =>
+  (value ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+/**
+ * The mock-BankID citizens, built by zipping CITIZEN_PERSON_ID and
+ * CITIZEN_PERSON_NUMBER (parallel comma-separated lists). The display name is
+ * fetched from Citizen 3.0 at /me, so it is not configured here.
+ */
+export const CITIZEN_PERSONS: CitizenPerson[] = splitCsv(CITIZEN_PERSON_ID).map((personId, i) => ({
+  personId,
+  personNumber: splitCsv(CITIZEN_PERSON_NUMBER)[i] ?? '',
+}));

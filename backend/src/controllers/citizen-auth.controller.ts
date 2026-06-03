@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { Body, Controller, Post, Req, Res } from 'routing-controllers';
+import { Body, Controller, Get, Post, Req, Res } from 'routing-controllers';
 import { Request, Response } from 'express';
 
-import { CITIZEN_NAME, CITIZEN_PERSON_ID, CITIZEN_PERSON_NUMBER } from '@config';
+import { CITIZEN_LOGIN_PASSWORD, CITIZEN_PERSONS, CitizenPerson } from '@config';
 import { logger } from '@utils/logger';
 
 /**
@@ -13,22 +13,46 @@ import { logger } from '@utils/logger';
  *   2) poll /collect   -> pending ... -> complete { completionData.user.personalNumber }
  *   3) resolve personalNumber -> Citizen personId (uuid) via Citizen guid/batch endpoint
  *
- * In this mock the personId is taken straight from .env (CITIZEN_PERSON_ID) so we can
- * verify the Citizen 3.0 lookup end-to-end without a real BankID order.
+ * In this mock the citizen is chosen from a small configured list (CITIZEN_PERSONS),
+ * guarded by a shared password (CITIZEN_LOGIN_PASSWORD), so we can verify the
+ * Citizen 3.0 lookup end-to-end without a real BankID order.
  */
 
 // How long (ms) the mock pretends the user is still signing before completing.
 const MOCK_SIGN_DURATION_MS = 1500;
 
-// orderRef -> when the order was started. In-memory; fine for a single-instance POC.
-const pendingOrders = new Map<string, number>();
+// orderRef -> the chosen person + when the order started. In-memory; fine for a single-instance POC.
+const pendingOrders = new Map<string, { startedAt: number; person: CitizenPerson }>();
+
+/** Short, non-sensitive label for the login picker (first 8 chars of the personId). */
+const personLabel = (personId: string) => personId.slice(0, 8);
 
 @Controller()
 export class CitizenAuthController {
+  /** Lists the selectable mock citizens (truncated personId only — no personnummer). */
+  @Get('/citizen/login/options')
+  options(@Res() res: Response) {
+    return res.json({
+      persons: CITIZEN_PERSONS.map((p, index) => ({ index, label: personLabel(p.personId) })),
+    });
+  }
+
   @Post('/citizen/login/start')
-  start(@Res() res: Response) {
+  start(@Body() body: { personIndex?: number; password?: string }, @Res() res: Response) {
+    if (!CITIZEN_LOGIN_PASSWORD) {
+      return res.status(401).json({ status: 'failed', hintCode: 'notConfigured' });
+    }
+    if (body?.password !== CITIZEN_LOGIN_PASSWORD) {
+      return res.status(401).json({ status: 'failed', hintCode: 'wrongPassword' });
+    }
+
+    const person = typeof body?.personIndex === 'number' ? CITIZEN_PERSONS[body.personIndex] : undefined;
+    if (!person) {
+      return res.status(400).json({ status: 'failed', hintCode: 'noPerson' });
+    }
+
     const orderRef = randomUUID();
-    pendingOrders.set(orderRef, Date.now());
+    pendingOrders.set(orderRef, { startedAt: Date.now(), person });
 
     // autoStartToken/qrStartToken are placeholders so the frontend can render the
     // same UI it will use against real BankID.
@@ -42,38 +66,33 @@ export class CitizenAuthController {
   @Post('/citizen/login/collect')
   collect(@Body() body: { orderRef?: string }, @Req() req: Request, @Res() res: Response) {
     const orderRef = body?.orderRef;
-    const startedAt = orderRef ? pendingOrders.get(orderRef) : undefined;
+    const order = orderRef ? pendingOrders.get(orderRef) : undefined;
 
-    if (!orderRef || startedAt === undefined) {
+    if (!orderRef || !order) {
       return res.status(400).json({ status: 'failed', hintCode: 'noOrder' });
     }
 
-    if (Date.now() - startedAt < MOCK_SIGN_DURATION_MS) {
+    if (Date.now() - order.startedAt < MOCK_SIGN_DURATION_MS) {
       return res.json({ orderRef, status: 'pending', hintCode: 'userSign' });
     }
 
-    // Complete: establish the citizen session.
+    // Complete: establish the citizen session. The display name is resolved from
+    // Citizen 3.0 at /me, so only a placeholder is stored here.
     pendingOrders.delete(orderRef);
 
     req.session.user = {
       type: 'citizen',
-      personId: CITIZEN_PERSON_ID,
-      name: CITIZEN_NAME ?? 'Medborgare',
-      personNumber: CITIZEN_PERSON_NUMBER,
+      personId: order.person.personId,
+      name: 'Medborgare',
+      personNumber: order.person.personNumber,
     };
 
-    logger.info(`Citizen login completed (mock) for personId ${CITIZEN_PERSON_ID}`);
+    logger.info(`Citizen login completed (mock) for personId ${order.person.personId}`);
 
     return res.json({
       orderRef,
       status: 'complete',
-      // Mirrors BankID completionData.user (personalNumber stays server-side after this).
-      completionData: {
-        user: {
-          personalNumber: CITIZEN_PERSON_NUMBER,
-          name: CITIZEN_NAME,
-        },
-      },
+      completionData: { user: { personalNumber: order.person.personNumber } },
     });
   }
 

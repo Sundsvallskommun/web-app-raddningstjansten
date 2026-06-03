@@ -12,8 +12,11 @@ const validateEnv = () => {
     CLIENT_KEY: str(),
     CLIENT_SECRET: str(),
     MUNICIPALITY_ID: str(),
+    // Comma-separated, parallel lists (one or more mock citizens).
     CITIZEN_PERSON_ID: str(),
     CITIZEN_PERSON_NUMBER: str(),
+    // Required to complete the mock citizen login; empty disables login.
+    CITIZEN_LOGIN_PASSWORD: str({ default: '' }),
     // Admin SAML against the fake SSO IdP
     SAML_ENTRY_SSO: url(),
     SAML_CALLBACK_URL: url(),

@@ -46,10 +46,12 @@ på Dokploys interna nätverk).
    CLIENT_KEY=<wso2 key>
    CLIENT_SECRET=<wso2 secret>
    MUNICIPALITY_ID=2281
-   # Medborgare (BankID-mock)
-   CITIZEN_PERSON_ID=<uuid>
-   CITIZEN_PERSON_NUMBER=<personnummer>
-   CITIZEN_NAME=Test Testsson
+   # Medborgare (BankID-mock). Kommaseparerade, parallella listor (en eller flera).
+   # Namnet hämtas från Citizen, så CITIZEN_NAME behövs inte längre.
+   CITIZEN_PERSON_ID=<uuid1>,<uuid2>
+   CITIZEN_PERSON_NUMBER=<personnummer1>,<personnummer2>
+   # Lösenord som medborgaren anger i inloggningsdialogen
+   CITIZEN_LOGIN_PASSWORD=<lösenord>
    # Admin (SAML mot fejk-IdP) – publika frontend-URL:er, inte localhost
    SAML_ENTRY_SSO=https://<fejk-idp>/sso
    SAML_CALLBACK_URL=https://<frontend-domän>/api/saml/login/callback

@@ -90,9 +90,12 @@ export class MeController {
       );
     }
 
+    // Display name comes from Citizen 3.0 (CITIZEN_NAME is no longer configured).
+    const citizenName = [citizen?.givenname, citizen?.lastname].filter(Boolean).join(' ');
+
     return {
       type: user.type,
-      name: user.name,
+      name: citizenName || user.name,
       maskedPersonNumber: maskPersonNumber(user.personNumber),
       citizen,
     };

@@ -16,9 +16,11 @@ services:
       CLIENT_KEY: ${CLIENT_KEY:?err}
       CLIENT_SECRET: ${CLIENT_SECRET:?err}
       MUNICIPALITY_ID: ${MUNICIPALITY_ID:-2281}
+      # Mock citizens: comma-separated, parallel lists of personId + personnummer.
       CITIZEN_PERSON_ID: ${CITIZEN_PERSON_ID:?err}
       CITIZEN_PERSON_NUMBER: ${CITIZEN_PERSON_NUMBER:?err}
-      CITIZEN_NAME: ${CITIZEN_NAME:-Test Testsson}
+      # Shared password required to complete the mock citizen login.
+      CITIZEN_LOGIN_PASSWORD: ${CITIZEN_LOGIN_PASSWORD:?err}
       # Admin SAML (fake SSO IdP)
       SAML_ENTRY_SSO: ${SAML_ENTRY_SSO:?err}
       SAML_CALLBACK_URL: ${SAML_CALLBACK_URL:?err}
