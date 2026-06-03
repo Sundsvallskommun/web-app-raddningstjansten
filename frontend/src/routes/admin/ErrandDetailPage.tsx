@@ -17,9 +17,10 @@ import {
   CheckCircleOutline,
   CancelOutlined,
   DownloadOutlined,
+  AssignmentIndOutlined,
 } from "@mui/icons-material";
 import { adminAttachmentDownloadUrl } from "@/api/api-service";
-import { useAdminErrand, useAdminDecision } from "@/api/queries";
+import { useAdminErrand, useAdminDecision, useAssignErrand } from "@/api/queries";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip, statusLabel } from "@/components/ErrandStatusChip";
@@ -66,6 +67,7 @@ export function ErrandDetailPage() {
   const { user } = useAuth();
   const { data, isLoading: loading } = useAdminErrand(id);
   const decision = useAdminDecision(id ?? "");
+  const assign = useAssignErrand(id ?? "");
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   // Clear the "updated" badge whenever fresh data arrives (incl. polling).
@@ -87,7 +89,19 @@ export function ErrandDetailPage() {
     }
   }
 
+  async function assignSelf() {
+    setActionMsg(null);
+    try {
+      await assign.mutateAsync();
+      setActionMsg("Du tilldelades som handläggare.");
+    } catch (e) {
+      setActionMsg(e instanceof Error ? e.message : "Tilldelningen misslyckades.");
+    }
+  }
+
   const acting = decision.isPending;
+  const assignedToMe =
+    !!data?.errand.assignedUserId && data.errand.assignedUserId === user?.username;
 
   const outcome = data ? outcomeMessage(data.details, "admin") : null;
   const inReview = data?.errand.status === "UNDER_MANUAL_REVIEW";
@@ -103,6 +117,11 @@ export function ErrandDetailPage() {
           at: d.created,
           actor: d.createdBy || "System",
           text: `Beslut: ${d.value ?? d.decisionType ?? ""}${d.description ? ` – ${d.description}` : ""}`,
+        })),
+        ...data.notes.map((n) => ({
+          at: n.created,
+          actor: n.author || "System",
+          text: n.body ?? "",
         })),
       ].sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""))
     : [];
@@ -341,6 +360,33 @@ export function ErrandDetailPage() {
             </Stack>
 
             <Stack spacing={2}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant='h6' sx={{ pb: 1 }}>
+                  Handläggare
+                </Typography>
+                <Field
+                  label='Tilldelad'
+                  value={
+                    assignedToMe ? `${data.errand.assignedUserId} (du)` : data.errand.assignedUserId
+                  }
+                />
+                {!assignedToMe && (
+                  <Button
+                    variant='contained'
+                    color='secondary'
+                    fullWidth
+                    startIcon={<AssignmentIndOutlined />}
+                    disabled={assign.isPending}
+                    onClick={assignSelf}
+                    sx={{ mt: 1.5 }}
+                  >
+                    {data.errand.assignedUserId
+                      ? "Ta över ärendet"
+                      : "Tilldela mig själv"}
+                  </Button>
+                )}
+              </Paper>
+
               <Paper sx={{ p: 2 }}>
                 <Typography variant='h6' sx={{ pb: 2 }}>
                   Handläggningsprocess

@@ -153,6 +153,13 @@ export interface StatusHistoryEntry {
   changedAt?: string;
 }
 
+export interface Note {
+  id?: string;
+  body?: string;
+  author?: string;
+  created?: string;
+}
+
 export interface Attachment {
   id?: string;
   fileName?: string;
@@ -169,6 +176,7 @@ export interface ErrandDetail {
   attachments: Attachment[];
   statusHistory: StatusHistoryEntry[];
   decisions: Decision[];
+  notes: Note[];
 }
 
 export interface PagingMeta {
@@ -253,6 +261,11 @@ export async function fetchAdminErrand(id: string): Promise<ErrandDetail> {
 /** Admin approves/rejects an errand in manual review. */
 export async function adminDecision(id: string, approved: boolean): Promise<void> {
   await apiService.post(`/admin/errands/${id}/decision`, { approved });
+}
+
+/** Admin assigns themselves as handläggare for an errand. */
+export async function assignErrand(id: string): Promise<void> {
+  await apiService.post(`/admin/errands/${id}/assign`, {});
 }
 
 const baseUrl = () => apiService.defaults.baseURL ?? '/api';

@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { isUuid } from '@/utils/uuid';
 import {
   adminDecision,
+  assignErrand,
   fetchAdminErrand,
   fetchAdminErrands,
   fetchCitizenErrand,
@@ -91,6 +92,17 @@ export function useAdminDecision(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (approved: boolean) => adminDecision(id, approved),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminErrand(id) });
+      qc.invalidateQueries({ queryKey: ['adminErrands'] });
+    },
+  });
+}
+
+export function useAssignErrand(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => assignErrand(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.adminErrand(id) });
       qc.invalidateQueries({ queryKey: ['adminErrands'] });

@@ -24,6 +24,7 @@ import {
   EgensotningApplication,
   EgensotningDetails,
   Errand,
+  Note,
   Notification,
   Sotningsobjekt,
   Stakeholder,
@@ -49,6 +50,7 @@ interface ErrandDetail {
   attachments: Attachment[];
   statusHistory: StatusHistoryEntry[];
   decisions: Decision[];
+  notes: Note[];
 }
 
 @Controller()
@@ -95,25 +97,48 @@ export class ErrandController {
     return errand;
   }
 
-  /** Fetch the full detail aggregate; tolerate sub-resources that fail/are empty. */
-  private async buildDetail(errand: Errand): Promise<ErrandDetail> {
+  /**
+   * Fetch the full detail aggregate; tolerate sub-resources that fail/are empty.
+   * For a citizen, handläggare identities are stripped (the applicant must not
+   * see who is handling their errand).
+   */
+  private async buildDetail(errand: Errand, audience: 'citizen' | 'admin'): Promise<ErrandDetail> {
     const id = errand.id!;
-    const [details, sotningsobjekt, stakeholders, attachments, statusHistory, decisions] = await Promise.all([
-      this.errandService.getDetails(id).catch(() => null),
-      this.errandService.getSotningsobjekt(id).catch(() => []),
-      this.errandService.getStakeholders(id).catch(() => []),
-      this.errandService.listAttachments(id).catch(() => []),
-      this.errandService.getStatusHistory(id).catch(() => []),
-      this.errandService.getDecisions(id).catch(() => []),
-    ]);
-    return {
-      errand: this.sanitizeErrand(errand),
+    const [details, sotningsobjekt, stakeholders, attachments, statusHistory, decisions, notes] =
+      await Promise.all([
+        this.errandService.getDetails(id).catch(() => null),
+        this.errandService.getSotningsobjekt(id).catch(() => []),
+        this.errandService.getStakeholders(id).catch(() => []),
+        this.errandService.listAttachments(id).catch(() => []),
+        this.errandService.getStatusHistory(id).catch(() => []),
+        this.errandService.getDecisions(id).catch(() => []),
+        audience === 'admin' ? this.errandService.getNotes(id).catch(() => []) : Promise.resolve<Note[]>([]),
+      ]);
+
+    const common = {
       details: this.sanitizeDetails(details),
       sotningsobjekt,
       stakeholders: this.sanitizeStakeholders(stakeholders),
       attachments,
+    };
+
+    if (audience === 'citizen') {
+      // Hide who is handling the errand from the applicant.
+      return {
+        ...common,
+        errand: { ...this.sanitizeErrand(errand), assignedUserId: undefined },
+        statusHistory: statusHistory.map(h => ({ ...h, changedBy: undefined })),
+        decisions: decisions.map(d => ({ ...d, createdBy: undefined })),
+        notes: [],
+      };
+    }
+
+    return {
+      ...common,
+      errand: this.sanitizeErrand(errand),
       statusHistory,
       decisions,
+      notes,
     };
   }
 
@@ -171,7 +196,7 @@ export class ErrandController {
   @UseBefore(authMiddleware)
   async citizenDetail(@Param('id') id: string, @Req() req: Request): Promise<ErrandDetail> {
     const errand = await this.assertCitizenOwns(id, req.session.user!);
-    return this.buildDetail(errand);
+    return this.buildDetail(errand, 'citizen');
   }
 
   /** Citizen downloads an attachment from their own errand. */
@@ -244,7 +269,24 @@ export class ErrandController {
   @UseBefore(authMiddleware, adminMiddleware)
   async adminDetail(@Param('id') id: string): Promise<ErrandDetail> {
     const errand = await this.errandService.getErrand(id);
-    return this.buildDetail(errand);
+    return this.buildDetail(errand, 'admin');
+  }
+
+  /** Admin assigns themselves as the handläggare for an errand. */
+  @Post('/admin/errands/:id/assign')
+  @UseBefore(authMiddleware, adminMiddleware)
+  async assignSelf(@Param('id') id: string, @Req() req: Request): Promise<{ status: string }> {
+    const user = req.session.user!;
+    const userId = user.username ?? '';
+    await this.errandService.assignErrand(id, userId);
+    await this.errandService
+      .addNote(id, {
+        author: user.name || userId,
+        body: `Tilldelade sig själv som handläggare (${userId})`,
+      })
+      .catch(e => logger.error(`Could not add assignment note for ${id}: ${(e as Error).message}`));
+    logger.info(`Errand ${id} assigned to ${userId}`);
+    return { status: 'ok' };
   }
 
   @Get('/admin/errands/:id/attachments/:attachmentId/file')
@@ -278,15 +320,24 @@ export class ErrandController {
   async adminDecision(
     @Param('id') id: string,
     @BodyParam('approved') approved: boolean,
+    @Req() req: Request,
   ): Promise<{ status: string }> {
     if (typeof approved !== 'boolean') {
       throw new HttpException(400, 'approved (boolean) is required');
     }
+    const user = req.session.user!;
     await this.errandService.sendProcessMessage(id, {
       messageName: 'manual-review-completed',
       variables: { manuelltGodkand: approved },
     });
-    logger.info(`Admin decision for errand ${id}: manuelltGodkand=${approved}`);
+    // Record who made the decision (the process decision may use a system actor).
+    await this.errandService
+      .addNote(id, {
+        author: user.name || user.username || 'handläggare',
+        body: approved ? 'Godkände ärendet' : 'Avslog ärendet',
+      })
+      .catch(e => logger.error(`Could not add decision note for ${id}: ${(e as Error).message}`));
+    logger.info(`Admin decision for errand ${id} by ${user.username}: manuelltGodkand=${approved}`);
     return { status: 'ok' };
   }
 

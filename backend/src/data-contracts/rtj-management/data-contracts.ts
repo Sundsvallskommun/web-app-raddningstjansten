@@ -155,3 +155,11 @@ export interface ProcessMessageRequest {
   messageName: string;
   variables?: Record<string, unknown>;
 }
+
+export interface Note {
+  id?: string;
+  errandId?: string;
+  body?: string;
+  author?: string;
+  created?: string;
+}

@@ -81,6 +81,10 @@ class ExternalApiService {
   public put<T, D = unknown>(url: string, data?: D, config: AxiosRequestConfig = {}): Promise<ExternalResponse<T>> {
     return this.request<T>({ ...config, url, method: 'PUT', data });
   }
+
+  public patch<T, D = unknown>(url: string, data?: D, config: AxiosRequestConfig = {}): Promise<ExternalResponse<T>> {
+    return this.request<T>({ ...config, url, method: 'PATCH', data });
+  }
 }
 
 export default ExternalApiService;

@@ -8,6 +8,7 @@ import {
   EgensotningDetails,
   Errand,
   FindErrandsResponse,
+  Note,
   Notification,
   ProcessMessageRequest,
   Sotningsobjekt,
@@ -131,6 +132,23 @@ export class ErrandService {
 
   public async acknowledgeNotifications(errandId: string): Promise<void> {
     await this.api.put<void>(`${this.base()}/${errandId}/notifications/acknowledged`);
+  }
+
+  // ---- Notes (audit trail of who did what) ----
+
+  public async getNotes(errandId: string): Promise<Note[]> {
+    const res = await this.api.get<Note[]>(`${this.base()}/${errandId}/notes`);
+    return res.data;
+  }
+
+  public async addNote(errandId: string, note: { body: string; author?: string }): Promise<void> {
+    await this.api.post(`${this.base()}/${errandId}/notes`, note);
+  }
+
+  // ---- Assignment ----
+
+  public async assignErrand(errandId: string, assignedUserId: string): Promise<void> {
+    await this.api.patch(`${this.base()}/${errandId}`, { assignedUserId });
   }
 
   // ---- Process messages (handläggare actions) ----
