@@ -76,7 +76,7 @@ export function ErrandDetailPage() {
 
   const acting = decision.isPending;
 
-  const outcome = data ? outcomeMessage(data.details) : null;
+  const outcome = data ? outcomeMessage(data.details, 'admin') : null;
   const inReview = data?.errand.status === 'UNDER_MANUAL_REVIEW';
 
   const audit: AuditItem[] = data

@@ -1,16 +1,27 @@
 import type { EgensotningDetails } from '@/api/api-service';
 
 type Severity = 'success' | 'info' | 'warning' | 'error';
+type Audience = 'citizen' | 'admin';
 
-const REASON_TEXT: Record<string, string> = {
-  NOT_REGISTERED: 'du inte är folkbokförd på fastigheten',
-  REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
-  REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
+// Reason phrasing differs by who is reading: the applicant ("du") vs a
+// handläggare looking at someone else's errand ("den sökande").
+const REASON_TEXT: Record<Audience, Record<string, string>> = {
+  citizen: {
+    NOT_REGISTERED: 'du inte är folkbokförd på fastigheten',
+    REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
+    REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
+  },
+  admin: {
+    NOT_REGISTERED: 'den sökande inte är folkbokförd på fastigheten',
+    REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
+    REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
+  },
 };
 
 /** Friendly Swedish message describing the current verification outcome. */
 export function outcomeMessage(
   details?: EgensotningDetails | null,
+  audience: Audience = 'citizen',
 ): { severity: Severity; text: string } | null {
   if (!details?.lastOutcome) return null;
   switch (details.lastOutcome) {
@@ -22,7 +33,8 @@ export function outcomeMessage(
         text: 'Något saknas i ansökan (t.ex. en bilaga). En komplettering behövs.',
       };
     case 'NEEDS_MANUAL_REVIEW': {
-      const reason = REASON_TEXT[details.manualReviewReason ?? ''] ?? 'ärendet kräver en manuell bedömning';
+      const reason =
+        REASON_TEXT[audience][details.manualReviewReason ?? ''] ?? 'ärendet kräver en manuell bedömning';
       return { severity: 'info', text: `Ansökan granskas manuellt eftersom ${reason}.` };
     }
     default:
