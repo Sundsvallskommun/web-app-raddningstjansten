@@ -1,55 +1,53 @@
-import { createTheme, type Theme } from "@mui/material/styles";
+import { createTheme } from "@mui/material/styles";
 
 /**
- * MUI theme for the POC. Kept isolated so it can later be replaced by
- * Sundsvalls Kommuns Shared Components without touching feature code.
+ * Theme aligned with the graphical profile of sverigesraddningstjanster.se.
  *
- * Two palettes (light/dark) are exposed via createAppTheme(mode); main.tsx
- * picks the mode from the OS setting (prefers-color-scheme).
+ * Typeface: the brand uses "Protipo" (Adobe Fonts / Typekit). That kit is
+ * commercial and domain-locked, so it cannot be bundled here — we keep
+ * `protipo` first in the font stack (used automatically if an Adobe Fonts
+ * project for this app's domain is added) and bundle Mulish (imported in
+ * main.tsx) as a close, free fallback.
  *
- * Fonts are bundled via @fontsource (imported in main.tsx). Note: "Droid Serif"
- * and "Droid Sans" are retired from Google Fonts, and "Source Sans Pro" is now
- * "Source Sans 3" — so the closest maintained equivalents are loaded, with the
- * originally requested names kept first in the fallback chain.
+ * Single light theme (no OS light/dark switching).
  */
 
-const FONT_BODY =
-  '"Source Sans 3", "Source Sans Pro", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const FONT_SERIF =
-  '"Noto Serif", "Droid Serif", Georgia, "Times New Roman", serif';
-const FONT_SANS =
-  '"Noto Sans", "Droid Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const FONT_FAMILY =
+  "'protipo', 'Mulish', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 /** Max width for centered content and the inner app-bar row. */
 export const CONTENT_MAX_WIDTH = 1080;
 
-const lightPalette = {
-  mode: "light" as const,
-  primary: { main: "#DA344D" },
-  secondary: { main: "#F18805" },
-  background: { default: "#f4f4f4", paper: "#fff" },
-};
-
-const darkPalette = {
-  mode: "dark" as const,
-  primary: { main: "#b5005e" },
-  secondary: { main: "#9514ff" },
-  background: { default: "#181818", paper: "#060606" },
-};
-
-export const createAppTheme = (mode: "light" | "dark"): Theme =>
-  createTheme({
-    palette: mode === "dark" ? darkPalette : lightPalette,
-    typography: {
-      fontFamily: FONT_BODY,
-      h1: { fontFamily: FONT_SERIF },
-      h2: { fontFamily: FONT_SANS },
-    },
-    components: {
-      MuiButton: {
-        styleOverrides: {
-          root: { borderRadius: 16 },
-        },
+// Brand palette extracted from the site's CSS variables.
+export const theme = createTheme({
+  palette: {
+    mode: "light",
+    primary: { main: "#df0033", contrastText: "#ffffff" }, // brand red (buttons, links, citizen app-bar)
+    secondary: { main: "#520000", contrastText: "#ffffff" }, // deep maroon (dark sections, admin app-bar)
+    background: { default: "#f1ebe5", paper: "#ffffff" }, // warm cream page, white cards
+    text: { primary: "#3b3b3b" },
+  },
+  shape: { borderRadius: 4 },
+  typography: {
+    fontFamily: FONT_FAMILY,
+    h1: { fontWeight: 700 },
+    h2: { fontWeight: 700 },
+    h3: { fontWeight: 700 },
+    h4: { fontWeight: 700 },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    button: { textTransform: "none", fontWeight: 600 },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { borderRadius: 4 },
       },
     },
-  });
+    MuiAppBar: {
+      styleOverrides: {
+        root: { background: "#520000" },
+      },
+    },
+  },
+});

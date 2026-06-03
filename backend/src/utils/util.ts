@@ -37,3 +37,14 @@ export const maskPersonNumber = (personNumber?: string | null): string | undefin
   const datePart = digits.slice(0, digits.length - 4);
   return `${datePart}-XXXX`;
 };
+
+/**
+ * Mask a personal number embedded at the end of an id, e.g. a reporterUserId
+ * "medborgare-198305090014" -> "medborgare-19830509-XXXX". Ids without a
+ * trailing 10–12 digit number are returned unchanged.
+ */
+export const maskReporterUserId = (id?: string | null): string | undefined => {
+  if (!id) return id ?? undefined;
+  const match = id.match(/^(.*?)(\d{10,12})$/);
+  return match ? `${match[1]}${maskPersonNumber(match[2])}` : id;
+};

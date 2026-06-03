@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -17,13 +17,8 @@ import {
   Typography,
 } from '@mui/material';
 import { AddCircleOutline, DeleteOutline, InfoOutlined, UploadFileOutlined } from '@mui/icons-material';
-import {
-  apiService,
-  fetchEngagements,
-  submitApplication,
-  type Engagement,
-  type SotningsobjektInput,
-} from '@/api/api-service';
+import { apiService, type SotningsobjektInput } from '@/api/api-service';
+import { useEngagements, useSubmitApplication } from '@/api/queries';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ObjektInfoDialog } from '@/components/ObjektInfoDialog';
@@ -60,7 +55,8 @@ export function ErrandFormPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
 
-  const [engagements, setEngagements] = useState<Engagement[]>([]);
+  const { data: engagements = [] } = useEngagements();
+  const submit = useSubmitApplication();
 
   // Personuppgifter (förifylls från folkbokföringen via Citizen)
   const [firstName, setFirstName] = useState(user?.citizen?.givenname ?? '');
@@ -81,15 +77,8 @@ export function ErrandFormPage() {
   // Bilagor (minst 1 obligatoriskt)
   const [files, setFiles] = useState<File[]>([]);
 
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [objektInfoOpen, setObjektInfoOpen] = useState(false);
-
-  useEffect(() => {
-    fetchEngagements()
-      .then(setEngagements)
-      .catch(() => setEngagements([]));
-  }, []);
 
   const updateObjekt = (idx: number, field: keyof ObjektRow, value: string) =>
     setObjekt(prev => prev.map((o, i) => (i === idx ? { ...o, [field]: value } : o)));
@@ -125,19 +114,18 @@ export function ErrandFormPage() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const sotningsobjekt: SotningsobjektInput[] = objekt.map(o => ({
-        typ: o.typ,
-        fabrikat: o.fabrikat || undefined,
-        tillverkningsar: o.tillverkningsar ? Number(o.tillverkningsar) : undefined,
-        bransleslag: o.bransleslag || undefined,
-        branslemangd: o.branslemangd || undefined,
-        sotningsintervallVeckor: o.sotningsintervallVeckor ? Number(o.sotningsintervallVeckor) : undefined,
-      }));
+    const sotningsobjekt: SotningsobjektInput[] = objekt.map(o => ({
+      typ: o.typ,
+      fabrikat: o.fabrikat || undefined,
+      tillverkningsar: o.tillverkningsar ? Number(o.tillverkningsar) : undefined,
+      bransleslag: o.bransleslag || undefined,
+      branslemangd: o.branslemangd || undefined,
+      sotningsintervallVeckor: o.sotningsintervallVeckor ? Number(o.sotningsintervallVeckor) : undefined,
+    }));
 
-      await submitApplication(
-        {
+    try {
+      await submit.mutateAsync({
+        application: {
           applicantEmail: email,
           fastighetsbeteckning,
           propertyAddress: address || undefined,
@@ -152,12 +140,10 @@ export function ErrandFormPage() {
           sotningsobjekt,
         },
         files,
-      );
+      });
       navigate('/errands', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte skicka ansökan.');
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -339,8 +325,8 @@ export function ErrandFormPage() {
                 )}
 
                 <Box>
-                  <Button type="submit" variant="contained" size="large" disabled={submitting}>
-                    {submitting ? <CircularProgress size={24} /> : 'Skicka ansökan'}
+                  <Button type="submit" variant="contained" size="large" disabled={submit.isPending}>
+                    {submit.isPending ? <CircularProgress size={24} /> : 'Skicka ansökan'}
                   </Button>
                 </Box>
               </Stack>

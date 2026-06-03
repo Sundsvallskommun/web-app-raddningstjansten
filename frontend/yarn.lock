@@ -402,20 +402,10 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz#9bdad8176be7811ad148d1f8772359041f46c6c5"
   integrity sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==
 
-"@fontsource/noto-sans@^5.2.5":
-  version "5.2.10"
-  resolved "https://registry.yarnpkg.com/@fontsource/noto-sans/-/noto-sans-5.2.10.tgz#74476071b53fda1554ac009b98f18d763d0f7135"
-  integrity sha512-J58RVfS/C0Z2VBF+PoU260Tx8cdRGYuS+e3yQe4hYaIYDl0sEVn5CzlLo5zVRvQD0HaIUTV8AZMfqR7rtdEpqQ==
-
-"@fontsource/noto-serif@^5.2.5":
-  version "5.2.9"
-  resolved "https://registry.yarnpkg.com/@fontsource/noto-serif/-/noto-serif-5.2.9.tgz#55d0b1382c753863dfa3f5c9b3b8649680df5aab"
-  integrity sha512-A2b7XBo0dSxxTZg95Ap/HLinXq1pEM8PzSvbBFtPMZM5/1BLKEU1dR+PBnLixvOdcC7mup+/NjmyLryQ1E9WeA==
-
-"@fontsource/source-sans-3@^5.2.5":
-  version "5.2.9"
-  resolved "https://registry.yarnpkg.com/@fontsource/source-sans-3/-/source-sans-3-5.2.9.tgz#6f9162ed7a19261da1a237b66005026424a18d99"
-  integrity sha512-u3ymIq4rfmCCyB9MEw/sFR5lPVJ1yTNXmIMbUz+9kVCFIHvNtfzXOEBuvkg3Tk0zhmioPeJ28ZK5smZ7TurezQ==
+"@fontsource/mulish@^5.2.5":
+  version "5.2.8"
+  resolved "https://registry.yarnpkg.com/@fontsource/mulish/-/mulish-5.2.8.tgz#2895f0d290e0d5e6dea357872574d5ccf9e01d3a"
+  integrity sha512-pAqO7fkpGHd0Zjr5ieiWrr9kJiZWbaADaZWOlMERTsSqNsRUsg5y0jv4n6/VjWhd4LUfkYpiQBhP0yLDpbPNiw==
 
 "@jridgewell/gen-mapping@^0.3.12", "@jridgewell/gen-mapping@^0.3.5":
   version "0.3.13"
@@ -667,6 +657,18 @@
   version "4.61.0"
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.61.0.tgz#f8e95dd237f7acc53a2d0fc35926f1c36489e274"
   integrity sha512-tkuFxhvKO/HlGd0VsINF6vHSYH8AF8W0TcNxKDK6JZmrehngFj78pToc8iemtnvwilDjs2G/qSzYFhe9U8q+fw==
+
+"@tanstack/query-core@5.101.0":
+  version "5.101.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.101.0.tgz#45391ce143c270b7e7a55bd1a6696918f20782d1"
+  integrity sha512-cQetA74EB+seWySv1TTKr828TnP0u39m6LykwDXIo84SNortpDkp30TMEjkqtYCNP9c40uT/iwl6MLiufEt0Ow==
+
+"@tanstack/react-query@^5.62.0":
+  version "5.101.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.101.0.tgz#2dd56c5b96ec816d6b6ec9cee5c80ed298974733"
+  integrity sha512-rLlJXSpkqfizLWgkR5+eLeIk0MvTx/meEIR7LRjxic+qxiQP8zVjq7BqQkiCMNLQBlLfuOLqqr6KO5GtrDlmSg==
+  dependencies:
+    "@tanstack/query-core" "5.101.0"
 
 "@types/babel__core@^7.20.5":
   version "7.20.5"

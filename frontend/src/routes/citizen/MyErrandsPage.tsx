@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Badge,
@@ -14,7 +14,8 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { apiService, fetchMyErrands, type Errand } from '@/api/api-service';
+import { apiService } from '@/api/api-service';
+import { useMyErrands } from '@/api/queries';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
@@ -25,18 +26,11 @@ const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '
 export function MyErrandsPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
-  const [errands, setErrands] = useState<Errand[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: errands = [], isLoading: loading } = useMyErrands();
 
   useEffect(() => {
-    fetchMyErrands()
-      .then(list => {
-        baselineSeen(list);
-        setErrands(list);
-      })
-      .catch(() => setErrands([]))
-      .finally(() => setLoading(false));
-  }, []);
+    baselineSeen(errands);
+  }, [errands]);
 
   async function logout() {
     await apiService.post('/citizen/logout');

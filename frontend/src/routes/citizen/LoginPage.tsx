@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Stack, Typography, CircularProgress, Alert } from '@mui/material';
 import { apiService } from '@/api/api-service';
 import { useAuth } from '@/auth/AuthContext';
+import { RaddningstjanstSymbol } from '@/components/RaddningstjanstSymbol';
 
 const POLL_INTERVAL_MS = 1000;
 const POLL_TIMEOUT_MS = 30000;
@@ -50,6 +51,9 @@ export function CitizenLoginPage() {
       <Card variant="outlined" sx={{ maxWidth: 420, width: '100%' }}>
         <CardContent>
           <Stack spacing={2} alignItems="center">
+            <Box sx={{ color: 'primary.main' }}>
+              <RaddningstjanstSymbol size={56} />
+            </Box>
             <Typography variant="h5">Räddningstjänsten</Typography>
             <Typography color="text.secondary" textAlign="center">
               Logga in som medborgare med BankID.

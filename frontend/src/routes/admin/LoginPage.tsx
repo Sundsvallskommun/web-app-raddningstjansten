@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
+import { RaddningstjanstSymbol } from '@/components/RaddningstjanstSymbol';
 
 const ERROR_MESSAGES: Record<string, string> = {
   MISSING_PERMISSIONS: 'Ditt konto saknar behörighet (rätt AD-grupp) för administration.',
@@ -28,6 +29,9 @@ export function AdminLoginPage() {
       <Card variant="outlined" sx={{ maxWidth: 420, width: '100%' }}>
         <CardContent>
           <Stack spacing={2} alignItems="center">
+            <Box sx={{ color: 'secondary.main' }}>
+              <RaddningstjanstSymbol size={56} />
+            </Box>
             <Typography variant="h5">Administration</Typography>
             <Typography color="text.secondary" textAlign="center">
               Logga in med ditt organisationskonto.

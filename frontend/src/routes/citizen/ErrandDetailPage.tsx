@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -14,20 +14,14 @@ import {
   Typography,
 } from '@mui/material';
 import { ArrowBack, DeleteOutline, DownloadOutlined, UploadFileOutlined } from '@mui/icons-material';
-import {
-  apiService,
-  citizenAttachmentDownloadUrl,
-  fetchCitizenErrand,
-  supplementErrand,
-  type ErrandDetail,
-} from '@/api/api-service';
+import { apiService, citizenAttachmentDownloadUrl } from '@/api/api-service';
+import { useCitizenErrand, useSupplementErrand } from '@/api/queries';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { StatusStepper } from '@/components/StatusStepper';
 import { markSeen } from '@/utils/seenErrands';
 import { outcomeMessage } from '@/utils/egensotning';
-import { isUuid } from '@/utils/uuid';
 
 const fmt = (s?: string) => (s ? new Date(s).toLocaleString('sv-SE') : '—');
 
@@ -35,34 +29,17 @@ export function CitizenErrandDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, clear } = useAuth();
-  const [data, setData] = useState<ErrandDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useCitizenErrand(id);
+  const supplement = useSupplementErrand(id ?? '');
 
   // Komplettering
   const [files, setFiles] = useState<File[]>([]);
-  const [supplementing, setSupplementing] = useState(false);
   const [supplementMsg, setSupplementMsg] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!isUuid(id)) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      const d = await fetchCitizenErrand(id!);
-      setData(d);
-      markSeen(d.errand.id, d.errand.modified);
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
+  // Clear the "updated" badge whenever fresh data arrives (incl. polling).
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (data) markSeen(data.errand.id, data.errand.modified);
+  }, [data]);
 
   async function logout() {
     await apiService.post('/citizen/logout');
@@ -76,18 +53,14 @@ export function CitizenErrandDetailPage() {
   };
 
   async function sendSupplement() {
-    if (!id || files.length === 0) return;
-    setSupplementing(true);
+    if (files.length === 0) return;
     setSupplementMsg(null);
     try {
-      await supplementErrand(id, files);
+      await supplement.mutateAsync(files);
       setFiles([]);
       setSupplementMsg('Kompletteringen är inskickad. Ärendet granskas på nytt.');
-      await load();
     } catch (err) {
       setSupplementMsg(err instanceof Error ? err.message : 'Kunde inte skicka kompletteringen.');
-    } finally {
-      setSupplementing(false);
     }
   }
 
@@ -177,8 +150,8 @@ export function CitizenErrandDetailPage() {
                   </Stack>
                 )}
                 <Box sx={{ mt: 2 }}>
-                  <Button variant="contained" disabled={supplementing || files.length === 0} onClick={sendSupplement}>
-                    {supplementing ? <CircularProgress size={24} /> : 'Skicka komplettering'}
+                  <Button variant="contained" disabled={supplement.isPending || files.length === 0} onClick={sendSupplement}>
+                    {supplement.isPending ? <CircularProgress size={24} /> : 'Skicka komplettering'}
                   </Button>
                 </Box>
               </Paper>

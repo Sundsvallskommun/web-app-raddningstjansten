@@ -13,8 +13,8 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { fetchAdminErrands, type Errand, type PagingMeta } from '@/api/api-service';
 import { useAuth } from '@/auth/AuthContext';
+import { useAdminErrands } from '@/api/queries';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
@@ -24,24 +24,15 @@ const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '
 export function AdminErrandsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [errands, setErrands] = useState<Errand[]>([]);
-  const [meta, setMeta] = useState<PagingMeta>({});
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useAdminErrands(page, size);
+  const errands = data?.errands ?? [];
+  const meta = data?._meta ?? {};
 
   useEffect(() => {
-    setLoading(true);
-    fetchAdminErrands(page, size)
-      .then(res => {
-        const list = res.errands ?? [];
-        baselineSeen(list);
-        setErrands(list);
-        setMeta(res._meta ?? {});
-      })
-      .catch(() => setErrands([]))
-      .finally(() => setLoading(false));
-  }, [page, size]);
+    baselineSeen(errands);
+  }, [errands]);
 
   function logout() {
     window.location.href = '/api/saml/logout';

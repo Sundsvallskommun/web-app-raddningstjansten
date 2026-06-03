@@ -19,6 +19,8 @@ import {
 import { ReactElement, useState } from "react";
 import { ProfileDialog } from "./ProfileDialog";
 import { NavDrawer } from "./NavDrawer";
+import { Footer } from "./Footer";
+import { RaddningstjanstSymbol } from "./RaddningstjanstSymbol";
 import { CONTENT_MAX_WIDTH } from "@/theme";
 
 // Keep the app-bar row and page content within the same centered max width.
@@ -69,10 +71,13 @@ export const Wrapper = ({
   };
 
   return (
-    <Box>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <AppBar position='static' color={color}>
         <Toolbar disableGutters sx={{ ...contentSx, width: "100%" }}>
           {showNav && <NavDrawer navType={navType} />}
+          <Box sx={{ display: "flex", mr: 1.5 }}>
+            <RaddningstjanstSymbol size={28} />
+          </Box>
           <Typography variant='h6' sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
@@ -118,9 +123,14 @@ export const Wrapper = ({
           </div>
         </Toolbar>
       </AppBar>
-      <Container maxWidth={false} disableGutters sx={{ ...contentSx, mt: 4 }}>
+      <Container
+        maxWidth={false}
+        disableGutters
+        sx={{ ...contentSx, mt: 4, mb: 4, flexGrow: 1, width: "100%" }}
+      >
         {children}
       </Container>
+      <Footer />
       <ProfileDialog
         onClose={handleCloseProfileDialog}
         open={open}

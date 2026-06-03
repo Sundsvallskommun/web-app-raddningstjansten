@@ -24,10 +24,12 @@ import {
   EgensotningApplication,
   EgensotningDetails,
   Errand,
+  Notification,
   Sotningsobjekt,
   Stakeholder,
   StatusHistoryEntry,
 } from '@/data-contracts/rtj-management/data-contracts';
+import { maskPersonNumber, maskReporterUserId } from '@utils/util';
 import { logger } from '@utils/logger';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -57,6 +59,30 @@ export class ErrandController {
     return `medborgare-${user.personNumber}`;
   }
 
+  // ---- Personal-number masking (never expose a full personnummer to the client) ----
+
+  private sanitizeErrand(e: Errand): Errand {
+    return { ...e, reporterUserId: maskReporterUserId(e.reporterUserId) };
+  }
+
+  private sanitizeDetails(d: EgensotningDetails | null): EgensotningDetails | null {
+    return d ? { ...d, personnummer: maskPersonNumber(d.personnummer) } : d;
+  }
+
+  private sanitizeStakeholders(list: Stakeholder[]): Stakeholder[] {
+    return list.map(s =>
+      s.externalIdType === 'PERSON' ? { ...s, externalId: maskPersonNumber(s.externalId) } : s,
+    );
+  }
+
+  private sanitizeNotifications(list: Notification[]): Notification[] {
+    return list.map(n => ({
+      ...n,
+      ownerId: maskReporterUserId(n.ownerId),
+      createdBy: maskReporterUserId(n.createdBy),
+    }));
+  }
+
   /** Throws unless the logged-in citizen owns the errand. */
   private async assertCitizenOwns(id: string, user: SessionUser): Promise<Errand> {
     if (user.type !== 'citizen' || !user.personNumber) {
@@ -80,7 +106,15 @@ export class ErrandController {
       this.errandService.getStatusHistory(id).catch(() => []),
       this.errandService.getDecisions(id).catch(() => []),
     ]);
-    return { errand, details, sotningsobjekt, stakeholders, attachments, statusHistory, decisions };
+    return {
+      errand: this.sanitizeErrand(errand),
+      details: this.sanitizeDetails(details),
+      sotningsobjekt,
+      stakeholders: this.sanitizeStakeholders(stakeholders),
+      attachments,
+      statusHistory,
+      decisions,
+    };
   }
 
   // ================= Citizen =================
@@ -129,7 +163,7 @@ export class ErrandController {
       filter: `reporterUserId:'${this.citizenUserId(user)}'`,
       size: 50,
     });
-    return result.errands ?? [];
+    return (result.errands ?? []).map(e => this.sanitizeErrand(e));
   }
 
   /** Citizen reads the full detail of their own errand. */
@@ -184,7 +218,8 @@ export class ErrandController {
     if (user.type !== 'citizen' || !user.personNumber) {
       throw new HttpException(403, 'FORBIDDEN');
     }
-    return this.errandService.getNotificationsByOwner(this.citizenUserId(user));
+    const notes = await this.errandService.getNotificationsByOwner(this.citizenUserId(user));
+    return this.sanitizeNotifications(notes);
   }
 
   /** Citizen acknowledges notifications on their own errand. */
@@ -201,7 +236,8 @@ export class ErrandController {
   @Get('/admin/errands')
   @UseBefore(authMiddleware, adminMiddleware)
   async listAll(@QueryParam('page') page = 0, @QueryParam('size') size = 20) {
-    return this.errandService.findErrands({ page, size });
+    const result = await this.errandService.findErrands({ page, size });
+    return { ...result, errands: (result.errands ?? []).map(e => this.sanitizeErrand(e)) };
   }
 
   @Get('/admin/errands/:id')
@@ -225,7 +261,8 @@ export class ErrandController {
   @UseBefore(authMiddleware, adminMiddleware)
   async adminNotifications(@Req() req: Request) {
     const user = req.session.user!;
-    return this.errandService.getNotificationsByOwner(user.username ?? '');
+    const notes = await this.errandService.getNotificationsByOwner(user.username ?? '');
+    return this.sanitizeNotifications(notes);
   }
 
   @Put('/admin/errands/:id/notifications/acknowledged')

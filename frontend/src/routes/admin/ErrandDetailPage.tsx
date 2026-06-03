@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -13,19 +13,14 @@ import {
   Typography,
 } from '@mui/material';
 import { ArrowBack, CheckCircleOutline, CancelOutlined, DownloadOutlined } from '@mui/icons-material';
-import {
-  adminAttachmentDownloadUrl,
-  adminDecision,
-  fetchAdminErrand,
-  type ErrandDetail,
-} from '@/api/api-service';
+import { adminAttachmentDownloadUrl } from '@/api/api-service';
+import { useAdminErrand, useAdminDecision } from '@/api/queries';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip, statusLabel } from '@/components/ErrandStatusChip';
 import { StatusStepper } from '@/components/StatusStepper';
 import { markSeen } from '@/utils/seenErrands';
 import { outcomeMessage } from '@/utils/egensotning';
-import { isUuid } from '@/utils/uuid';
 
 const gridSx = {
   display: 'grid',
@@ -56,50 +51,30 @@ export function ErrandDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [data, setData] = useState<ErrandDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [acting, setActing] = useState(false);
+  const { data, isLoading: loading } = useAdminErrand(id);
+  const decision = useAdminDecision(id ?? '');
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!isUuid(id)) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      const d = await fetchAdminErrand(id!);
-      setData(d);
-      markSeen(d.errand.id, d.errand.modified);
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
+  // Clear the "updated" badge whenever fresh data arrives (incl. polling).
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (data) markSeen(data.errand.id, data.errand.modified);
+  }, [data]);
 
   function logout() {
     window.location.href = '/api/saml/logout';
   }
 
   async function decide(approved: boolean) {
-    if (!id) return;
-    setActing(true);
     setActionMsg(null);
     try {
-      await adminDecision(id, approved);
+      await decision.mutateAsync(approved);
       setActionMsg(approved ? 'Ärendet godkändes.' : 'Ärendet avslogs.');
-      await load();
     } catch (e) {
       setActionMsg(e instanceof Error ? e.message : 'Åtgärden misslyckades.');
-    } finally {
-      setActing(false);
     }
   }
+
+  const acting = decision.isPending;
 
   const outcome = data ? outcomeMessage(data.details) : null;
   const inReview = data?.errand.status === 'UNDER_MANUAL_REVIEW';
