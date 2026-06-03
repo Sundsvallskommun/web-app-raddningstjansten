@@ -5,6 +5,7 @@ import { CitizenLoginPage } from '@/routes/citizen/LoginPage';
 import { CitizenDashboardPage } from '@/routes/citizen/DashboardPage';
 import { ErrandFormPage } from '@/routes/citizen/ErrandFormPage';
 import { MyErrandsPage } from '@/routes/citizen/MyErrandsPage';
+import { MyDecisionsPage } from '@/routes/citizen/MyDecisionsPage';
 import { CitizenErrandDetailPage } from '@/routes/citizen/ErrandDetailPage';
 import { AdminLoginPage } from '@/routes/admin/LoginPage';
 import { AdminDashboardPage } from '@/routes/admin/DashboardPage';
@@ -44,6 +45,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute type="citizen">
         <CitizenErrandDetailPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/decisions',
+    element: (
+      <ProtectedRoute type="citizen">
+        <MyDecisionsPage />
       </ProtectedRoute>
     ),
   },

@@ -21,15 +21,14 @@ import {
   AssignmentIndOutlined,
 } from "@mui/icons-material";
 import { adminAttachmentDownloadUrl } from "@/api/api-service";
-import {
-  useAdminErrand,
-  useAdminDecision,
-  useAssignErrand,
-} from "@/api/queries";
+import { useAdminErrand, useAssignErrand } from "@/api/queries";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip, statusLabel } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
+import { DecisionDialog } from "@/components/DecisionDialog";
+import { DecisionPdfCard } from "@/components/DecisionPdfCard";
+import { ServiceError } from "@/components/ServiceError";
 import { markSeen } from "@/utils/seenErrands";
 import {
   applicantName,
@@ -74,10 +73,11 @@ export function ErrandDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data, isLoading: loading } = useAdminErrand(id);
-  const decision = useAdminDecision(id ?? "");
+  const { data, isLoading: loading, isError, error, refetch, isFetching } = useAdminErrand(id);
   const assign = useAssignErrand(id ?? "");
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  // null = dialog closed; true = approving; false = rejecting.
+  const [decisionApproved, setDecisionApproved] = useState<boolean | null>(null);
 
   // Clear the "updated" badge whenever fresh data arrives (incl. polling).
   useEffect(() => {
@@ -86,16 +86,6 @@ export function ErrandDetailPage() {
 
   function logout() {
     window.location.href = "/api/saml/logout";
-  }
-
-  async function decide(approved: boolean) {
-    setActionMsg(null);
-    try {
-      await decision.mutateAsync(approved);
-      setActionMsg(approved ? "Ärendet godkändes." : "Ärendet avslogs.");
-    } catch (e) {
-      setActionMsg(e instanceof Error ? e.message : "Åtgärden misslyckades.");
-    }
   }
 
   async function assignSelf() {
@@ -110,13 +100,17 @@ export function ErrandDetailPage() {
     }
   }
 
-  const acting = decision.isPending;
   const assignedToMe =
     !!data?.errand.assignedUserId &&
     data.errand.assignedUserId === user?.username;
+  const status = data?.errand.status;
+  const isDecided = status === "DECIDED" || status === "REJECTED";
 
   const outcome = data ? outcomeMessage(data.details, "admin") : null;
   const inReview = data?.errand.status === "UNDER_MANUAL_REVIEW";
+  // A decision can only be made once a handläggare has taken the errand on
+  // (assigned + status "Pågående").
+  const canDecide = !!data?.errand.assignedUserId && status === "ONGOING";
   // The "granskas manuellt" message is only relevant while the errand is
   // actually in manual review — hide it once it has moved on (e.g. decided).
   const showOutcome =
@@ -151,7 +145,8 @@ export function ErrandDetailPage() {
       showNav
       navType='admin'
     >
-      <Box>
+      <>
+        <Box>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate("/admin/errands")}
@@ -164,6 +159,8 @@ export function ErrandDetailPage() {
           <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <CircularProgress />
           </Box>
+        ) : isError ? (
+          <ServiceError error={error} onRetry={() => refetch()} isRetrying={isFetching} />
         ) : !data ? (
           <Typography>Ärendet kunde inte hämtas.</Typography>
         ) : (
@@ -218,7 +215,7 @@ export function ErrandDetailPage() {
                   <Field label='Inskickat' value={fmt(data.errand.created)} />
                 </Box>
 
-                {inReview && (
+                {canDecide && (
                   <>
                     <Divider sx={{ my: 2 }} />
                     <Typography variant='subtitle2' gutterBottom>
@@ -234,8 +231,7 @@ export function ErrandDetailPage() {
                         variant='contained'
                         color='success'
                         startIcon={<CheckCircleOutline />}
-                        disabled={acting}
-                        onClick={() => decide(true)}
+                        onClick={() => setDecisionApproved(true)}
                       >
                         Godkänn
                       </Button>
@@ -243,8 +239,7 @@ export function ErrandDetailPage() {
                         variant='outlined'
                         color='error'
                         startIcon={<CancelOutlined />}
-                        disabled={acting}
-                        onClick={() => decide(false)}
+                        onClick={() => setDecisionApproved(false)}
                       >
                         Avslå
                       </Button>
@@ -252,6 +247,8 @@ export function ErrandDetailPage() {
                   </>
                 )}
               </Paper>
+
+              {isDecided && id && <DecisionPdfCard errandId={id} role='admin' />}
 
               <Typography variant='h6'>Sotningsobjekt</Typography>
               {data.sotningsobjekt.length === 0 ? (
@@ -406,7 +403,7 @@ export function ErrandDetailPage() {
                       : data.errand.assignedUserId
                   }
                 />
-                {!assignedToMe && (
+                {!assignedToMe && !isDecided && (
                   <Button
                     variant='contained'
                     color='secondary'
@@ -435,7 +432,21 @@ export function ErrandDetailPage() {
             </Stack>
           </Box>
         )}
-      </Box>
+        </Box>
+
+        {id && (
+          <DecisionDialog
+            errandId={id}
+            approved={decisionApproved}
+            onClose={() => setDecisionApproved(null)}
+            onConfirmed={() =>
+              setActionMsg(
+                decisionApproved ? "Ärendet godkändes." : "Ärendet avslogs.",
+              )
+            }
+          />
+        )}
+      </>
     </Wrapper>
   );
 }

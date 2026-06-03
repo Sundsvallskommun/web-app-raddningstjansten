@@ -4,6 +4,7 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { theme } from "@/theme";
 import App from "@/App";
+import { retryBackoff, retryUpstream } from "@/utils/apiError";
 
 // Mulish (free fallback for the brand's Protipo), latin subset only.
 import "@fontsource/mulish/latin-400.css";
@@ -15,7 +16,9 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: true, // refresh data when the tab regains focus
       staleTime: 10_000,
-      retry: 1,
+      // Retry only transient upstream outages (502/503/504/network), not 4xx.
+      retry: retryUpstream,
+      retryDelay: retryBackoff,
     },
   },
 });

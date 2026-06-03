@@ -275,9 +275,22 @@ export async function fetchAdminErrand(id: string): Promise<ErrandDetail> {
   return data;
 }
 
-/** Admin approves/rejects an errand in manual review. */
-export async function adminDecision(id: string, approved: boolean): Promise<void> {
-  await apiService.post(`/admin/errands/${id}/decision`, { approved });
+/** Admin approves/rejects an errand in manual review, with optional decision text. */
+export async function adminDecision(id: string, approved: boolean, decisionText?: string): Promise<void> {
+  await apiService.post(`/admin/errands/${id}/decision`, { approved, decisionText });
+}
+
+/** Render the decision document as HTML for the confirmation dialog preview. */
+export async function decisionPreview(
+  id: string,
+  approved: boolean,
+  decisionText?: string,
+): Promise<{ html: string }> {
+  const { data } = await apiService.post<{ html: string }>(`/admin/errands/${id}/decision/preview`, {
+    approved,
+    decisionText,
+  });
+  return data;
 }
 
 /** Admin assigns themselves as handläggare for an errand. */
@@ -293,4 +306,12 @@ export function citizenAttachmentDownloadUrl(errandId: string, attachmentId: str
 
 export function adminAttachmentDownloadUrl(errandId: string, attachmentId: string): string {
   return `${baseUrl()}/admin/errands/${errandId}/attachments/${attachmentId}/file`;
+}
+
+export function citizenDecisionPdfUrl(errandId: string): string {
+  return `${baseUrl()}/citizen/errands/${errandId}/decision/pdf`;
+}
+
+export function adminDecisionPdfUrl(errandId: string): string {
+  return `${baseUrl()}/admin/errands/${errandId}/decision/pdf`;
 }

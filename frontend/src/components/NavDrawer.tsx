@@ -17,6 +17,7 @@ import {
   DashboardOutlined,
   NoteAddOutlined,
   ListAltOutlined,
+  DescriptionOutlined,
 } from '@mui/icons-material';
 
 interface NavItem {
@@ -29,6 +30,7 @@ const CITIZEN_ITEMS: NavItem[] = [
   { label: 'Översikt', path: '/dashboard', icon: <DashboardOutlined /> },
   { label: 'Ny ansökan', path: '/errand/new', icon: <NoteAddOutlined /> },
   { label: 'Mina ärenden', path: '/errands', icon: <ListAltOutlined /> },
+  { label: 'Mina beslut', path: '/decisions', icon: <DescriptionOutlined /> },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [

@@ -18,6 +18,7 @@ import authMiddleware from '@middlewares/auth.middleware';
 import adminMiddleware from '@middlewares/admin.middleware';
 import { HttpException } from '@exceptions/HttpException';
 import { ErrandService } from '@services/errand.service';
+import { DecisionContext, TemplatingService } from '@services/templating.service';
 import { SessionUser } from '@interfaces/user.interface';
 import {
   Attachment,
@@ -35,6 +36,9 @@ import { maskPersonNumber, maskReporterUserId } from '@utils/util';
 import { logger } from '@utils/logger';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/** Stored decision documents are named "Beslut-<errandNumber>.pdf". */
+const DECISION_FILE_PREFIX = 'Beslut-';
 
 interface UploadedFileType {
   buffer: Buffer;
@@ -71,6 +75,7 @@ interface ErrandDetail {
 @Controller()
 export class ErrandController {
   private readonly errandService = new ErrandService();
+  private readonly templatingService = new TemplatingService();
 
   private citizenUserId(user: SessionUser): string {
     return `medborgare-${user.personNumber}`;
@@ -134,7 +139,9 @@ export class ErrandController {
       details: this.sanitizeDetails(details),
       sotningsobjekt,
       stakeholders: this.sanitizeStakeholders(stakeholders),
-      attachments,
+      // The rendered decision document is surfaced via the decision endpoints,
+      // not mixed in with the applicant's uploaded attachments.
+      attachments: attachments.filter(a => !(a.fileName ?? '').startsWith(DECISION_FILE_PREFIX)),
     };
 
     if (audience === 'citizen') {
@@ -233,6 +240,18 @@ export class ErrandController {
     return this.streamAttachment(id, attachmentId, res);
   }
 
+  /** Citizen views/downloads the decision document (PDF) for their own errand. */
+  @Get('/citizen/errands/:id/decision/pdf')
+  @UseBefore(authMiddleware)
+  async citizenDecisionPdf(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const errand = await this.assertCitizenOwns(id, req.session.user!);
+    return this.streamDecisionPdf(errand, res);
+  }
+
   /**
    * Citizen supplements an errand that awaits completion: uploads the requested
    * document(s) and triggers a re-verification via `komplettering-received`.
@@ -295,8 +314,8 @@ export class ErrandController {
 
   /**
    * Admin assigns themselves as the handläggare. Taking on an errand also moves
-   * it to status ONGOING ("Pågående") — unless it is already in a terminal state
-   * (a decided/rejected errand must not be reopened by an assignment).
+   * it to status ONGOING ("Pågående"). A decided/rejected errand is terminal —
+   * its handläggare can no longer be changed.
    */
   @Post('/admin/errands/:id/assign')
   @UseBefore(authMiddleware, adminMiddleware)
@@ -305,19 +324,18 @@ export class ErrandController {
     const userId = user.username ?? '';
 
     const errand = await this.errandService.getErrand(id);
-    const isTerminal = errand.status === 'DECIDED' || errand.status === 'REJECTED';
-    const nextStatus = isTerminal ? undefined : 'ONGOING';
+    if (errand.status === 'DECIDED' || errand.status === 'REJECTED') {
+      throw new HttpException(409, 'Cannot change the handläggare of a decided/rejected errand');
+    }
 
-    await this.errandService.assignErrand(id, userId, nextStatus);
+    await this.errandService.assignErrand(id, userId, 'ONGOING');
     await this.errandService
       .addNote(id, {
         author: user.name || userId,
-        body: nextStatus
-          ? `Tilldelade sig själv som handläggare (${userId}). Status: Pågående.`
-          : `Tilldelade sig själv som handläggare (${userId})`,
+        body: `Tilldelade sig själv som handläggare (${userId}). Status: Pågående.`,
       })
       .catch(e => logger.error(`Could not add assignment note for ${id}: ${(e as Error).message}`));
-    logger.info(`Errand ${id} assigned to ${userId}${nextStatus ? ` (status -> ${nextStatus})` : ''}`);
+    logger.info(`Errand ${id} assigned to ${userId} (status -> ONGOING)`);
     return { status: 'ok' };
   }
 
@@ -346,31 +364,74 @@ export class ErrandController {
     return { status: 'ok' };
   }
 
-  /** Admin approves/rejects an errand in manual review. */
+  /**
+   * Admin approves/rejects an errand in manual review. An optional free-text
+   * `decisionText` (handläggarens motivering) is woven into the decision document,
+   * which is rendered and stored as "Beslut-<nr>.pdf" on the errand.
+   */
   @Post('/admin/errands/:id/decision')
   @UseBefore(authMiddleware, adminMiddleware)
   async adminDecision(
     @Param('id') id: string,
     @BodyParam('approved') approved: boolean,
+    @BodyParam('decisionText') decisionText: string,
     @Req() req: Request,
   ): Promise<{ status: string }> {
     if (typeof approved !== 'boolean') {
       throw new HttpException(400, 'approved (boolean) is required');
     }
     const user = req.session.user!;
+    const decidedBy = user.name || user.username || 'handläggare';
+
     await this.errandService.sendProcessMessage(id, {
       messageName: 'manual-review-completed',
       variables: { manuelltGodkand: approved },
     });
     // Record who made the decision (the process decision may use a system actor).
     await this.errandService
-      .addNote(id, {
-        author: user.name || user.username || 'handläggare',
-        body: approved ? 'Godkände ärendet' : 'Avslog ärendet',
-      })
+      .addNote(id, { author: decidedBy, body: approved ? 'Godkände ärendet' : 'Avslog ärendet' })
       .catch(e => logger.error(`Could not add decision note for ${id}: ${(e as Error).message}`));
+
+    // Render and store the decision document (best-effort — never block the decision).
+    try {
+      const errand = await this.errandService.getErrand(id);
+      const ctx = await this.loadDecisionContext(errand, approved, decisionText || undefined, decidedBy);
+      const pdf = await this.templatingService.renderPdf(ctx);
+      await this.errandService.addDecisionPdf(id, errand.errandNumber ?? id, pdf);
+    } catch (e) {
+      logger.error(`Could not render/store decision PDF for ${id}: ${(e as Error).message}`);
+    }
+
     logger.info(`Admin decision for errand ${id} by ${user.username}: manuelltGodkand=${approved}`);
     return { status: 'ok' };
+  }
+
+  /** Render the decision document as HTML for the confirmation dialog preview. */
+  @Post('/admin/errands/:id/decision/preview')
+  @UseBefore(authMiddleware, adminMiddleware)
+  async decisionPreview(
+    @Param('id') id: string,
+    @BodyParam('approved') approved: boolean,
+    @BodyParam('decisionText') decisionText: string,
+    @Req() req: Request,
+  ): Promise<{ html: string }> {
+    if (typeof approved !== 'boolean') {
+      throw new HttpException(400, 'approved (boolean) is required');
+    }
+    const user = req.session.user!;
+    const decidedBy = user.name || user.username || 'handläggare';
+    const errand = await this.errandService.getErrand(id);
+    const ctx = await this.loadDecisionContext(errand, approved, decisionText || undefined, decidedBy);
+    const html = await this.templatingService.renderHtml(ctx);
+    return { html };
+  }
+
+  /** Admin views/downloads the decision document (PDF). */
+  @Get('/admin/errands/:id/decision/pdf')
+  @UseBefore(authMiddleware, adminMiddleware)
+  async adminDecisionPdf(@Param('id') id: string, @Res() res: Response): Promise<Response> {
+    const errand = await this.errandService.getErrand(id);
+    return this.streamDecisionPdf(errand, res);
   }
 
   // ================= Shared =================
@@ -380,5 +441,49 @@ export class ErrandController {
     res.setHeader('Content-Type', r.contentType ?? 'application/octet-stream');
     res.setHeader('Content-Disposition', r.contentDisposition ?? `attachment; filename="${attachmentId}"`);
     return res.send(Buffer.from(r.data));
+  }
+
+  /** Gather everything the decision template needs (raw, unmasked — the template masks). */
+  private async loadDecisionContext(
+    errand: Errand,
+    approved: boolean,
+    decisionText?: string,
+    decidedBy?: string,
+  ): Promise<DecisionContext> {
+    const id = errand.id!;
+    const [details, sotningsobjekt, stakeholders, decisions] = await Promise.all([
+      this.errandService.getDetails(id).catch(() => null),
+      this.errandService.getSotningsobjekt(id).catch(() => []),
+      this.errandService.getStakeholders(id).catch(() => []),
+      this.errandService.getDecisions(id).catch(() => []),
+    ]);
+    return { errand, details, sotningsobjekt, stakeholders, decisions, approved, decisionText, decidedBy };
+  }
+
+  /**
+   * Serve the decision PDF: prefer a stored "Beslut-*.pdf" (captures the
+   * handläggare's edits), otherwise render on demand for a decided/rejected errand.
+   */
+  private async streamDecisionPdf(errand: Errand, res: Response): Promise<Response> {
+    const id = errand.id!;
+    const attachments = await this.errandService.listAttachments(id).catch(() => []);
+    const stored = attachments.find(a => a.id && (a.fileName ?? '').startsWith(DECISION_FILE_PREFIX));
+    if (stored?.id) {
+      const r = await this.errandService.getAttachmentFile(id, stored.id);
+      return this.sendPdf(res, Buffer.from(r.data), stored.fileName ?? `Beslut-${id}.pdf`);
+    }
+
+    if (errand.status !== 'DECIDED' && errand.status !== 'REJECTED') {
+      throw new HttpException(409, 'No decision available for this errand yet');
+    }
+    const ctx = await this.loadDecisionContext(errand, errand.status === 'DECIDED');
+    const pdf = await this.templatingService.renderPdf(ctx);
+    return this.sendPdf(res, pdf, `Beslut-${errand.errandNumber ?? id}.pdf`);
+  }
+
+  private sendPdf(res: Response, pdf: Buffer, filename: string): Response {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    return res.send(pdf);
   }
 }

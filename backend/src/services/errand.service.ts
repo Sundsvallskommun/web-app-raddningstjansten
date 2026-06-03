@@ -120,10 +120,22 @@ export class ErrandService {
   }
 
   /** Add a single attachment (multipart, field name "file") to an existing errand. */
-  public async addAttachment(errandId: string, file: UploadFile): Promise<void> {
+  public async addAttachment(errandId: string, file: UploadFile, category?: string): Promise<void> {
     const form = new FormData();
     form.append('file', file.buffer, { filename: file.originalname, contentType: file.mimetype });
-    await this.api.post(`${this.base()}/${errandId}/attachments`, form, { headers: form.getHeaders() });
+    await this.api.post(`${this.base()}/${errandId}/attachments`, form, {
+      headers: form.getHeaders(),
+      ...(category ? { params: { category } } : {}),
+    });
+  }
+
+  /** Store a rendered decision document as an attachment (named "Beslut-<nr>.pdf"). */
+  public async addDecisionPdf(errandId: string, errandNumber: string, pdf: Buffer): Promise<void> {
+    await this.addAttachment(
+      errandId,
+      { buffer: pdf, originalname: `Beslut-${errandNumber}.pdf`, mimetype: 'application/pdf' },
+      'OTHER',
+    );
   }
 
   public async getAttachmentFile(errandId: string, attachmentId: string): Promise<ExternalResponse<ArrayBuffer>> {

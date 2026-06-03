@@ -38,4 +38,6 @@ export const {
   RTJ_NAMESPACE,
   RTJ_DEFAULT_ASSIGNEE,
   RTJ_PROCESS_DEFINITION,
+  // Templating 2.1 (decision documents)
+  EGENSOTNING_DECISION_TEMPLATE,
 } = process.env;

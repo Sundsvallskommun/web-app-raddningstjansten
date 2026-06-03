@@ -17,6 +17,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { useAdminErrands } from '@/api/queries';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
+import { ServiceError } from '@/components/ServiceError';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
@@ -26,7 +27,7 @@ export function AdminErrandsPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
-  const { data, isLoading: loading } = useAdminErrands(page, size);
+  const { data, isLoading: loading, isError, error, refetch, isFetching } = useAdminErrands(page, size);
   const errands = data?.errands ?? [];
   const meta = data?._meta ?? {};
 
@@ -56,6 +57,8 @@ export function AdminErrandsPage() {
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress />
             </Box>
+          ) : isError ? (
+            <ServiceError error={error} onRetry={() => refetch()} isRetrying={isFetching} />
           ) : errands.length === 0 ? (
             <Typography color="text.secondary" sx={{ p: 3 }}>
               Inga ärenden ännu.

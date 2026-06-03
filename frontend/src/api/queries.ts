@@ -92,7 +92,8 @@ export function useSupplementErrand(id: string) {
 export function useAdminDecision(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (approved: boolean) => adminDecision(id, approved),
+    mutationFn: (vars: { approved: boolean; decisionText?: string }) =>
+      adminDecision(id, vars.approved, vars.decisionText),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.adminErrand(id) });
       qc.invalidateQueries({ queryKey: ['adminErrands'] });

@@ -26,6 +26,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
+import { DecisionPdfCard } from "@/components/DecisionPdfCard";
+import { ServiceError } from "@/components/ServiceError";
 import { markSeen } from "@/utils/seenErrands";
 import {
   applicantName,
@@ -47,7 +49,7 @@ export function CitizenErrandDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, clear } = useAuth();
-  const { data, isLoading: loading } = useCitizenErrand(id);
+  const { data, isLoading: loading, isError, error, refetch, isFetching } = useCitizenErrand(id);
   const supplement = useSupplementErrand(id ?? "");
 
   // Komplettering
@@ -90,6 +92,8 @@ export function CitizenErrandDetailPage() {
 
   const outcome = data ? outcomeMessage(data.details) : null;
   const needsSupplement = data?.errand.status === "AWAITING_SUPPLEMENTATION";
+  const isDecided =
+    data?.errand.status === "DECIDED" || data?.errand.status === "REJECTED";
 
   return (
     <Wrapper
@@ -113,6 +117,8 @@ export function CitizenErrandDetailPage() {
           <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <CircularProgress />
           </Box>
+        ) : isError ? (
+          <ServiceError error={error} onRetry={() => refetch()} isRetrying={isFetching} />
         ) : !data ? (
           <Typography>Ärendet kunde inte hämtas.</Typography>
         ) : (
@@ -139,6 +145,8 @@ export function CitizenErrandDetailPage() {
                   </Alert>
                 )}
               </Paper>
+
+              {isDecided && id && <DecisionPdfCard errandId={id} role='citizen' />}
 
               {needsSupplement && (
                 <Paper

@@ -1,7 +1,5 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Box,
   Button,
   CircularProgress,
@@ -14,24 +12,22 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { apiService } from '@/api/api-service';
+import { OpenInNewOutlined, DownloadOutlined } from '@mui/icons-material';
+import { apiService, citizenDecisionPdfUrl } from '@/api/api-service';
 import { useMyErrands } from '@/api/queries';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { ServiceError } from '@/components/ServiceError';
-import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
+const isDecided = (status?: string) => status === 'DECIDED' || status === 'REJECTED';
 
-export function MyErrandsPage() {
+export function MyDecisionsPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
   const { data: errands = [], isLoading: loading, isError, error, refetch, isFetching } = useMyErrands();
-
-  useEffect(() => {
-    baselineSeen(errands);
-  }, [errands]);
+  const decided = errands.filter(e => isDecided(e.status));
 
   async function logout() {
     await apiService.post('/citizen/logout');
@@ -41,7 +37,7 @@ export function MyErrandsPage() {
 
   return (
     <Wrapper
-      title="Räddningstjänsten Medelpad - Mina ärenden"
+      title="Räddningstjänsten Medelpad - Mina beslut"
       logout={logout}
       color="primary"
       user={user}
@@ -49,12 +45,9 @@ export function MyErrandsPage() {
       navType="citizen"
     >
       <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h4">Mina ärenden</Typography>
-          <Button variant="contained" onClick={() => navigate('/errand/new')}>
-            Ny ansökan
-          </Button>
-        </Stack>
+        <Typography variant="h4" sx={{ mb: 2 }}>
+          Mina beslut
+        </Typography>
 
         <Paper sx={{ p: 2 }}>
           {loading ? (
@@ -63,9 +56,9 @@ export function MyErrandsPage() {
             </Box>
           ) : isError ? (
             <ServiceError error={error} onRetry={() => refetch()} isRetrying={isFetching} />
-          ) : errands.length === 0 ? (
+          ) : decided.length === 0 ? (
             <Typography color="text.secondary" sx={{ p: 2 }}>
-              Du har inga inskickade ärenden ännu.
+              Du har inga beslut ännu.
             </Typography>
           ) : (
             <Table>
@@ -74,27 +67,42 @@ export function MyErrandsPage() {
                   <TableCell>Ärende</TableCell>
                   <TableCell>Titel</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell>Inskickat</TableCell>
+                  <TableCell>Datum</TableCell>
+                  <TableCell align="right">Beslut</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {errands.map(e => (
-                  <TableRow
-                    key={e.id}
-                    hover
-                    sx={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/errands/${e.id}`)}
-                  >
-                    <TableCell>
-                      <Badge color="error" variant="dot" invisible={!isUpdated(e.id, e.modified)}>
-                        <span>{e.errandNumber ?? e.id?.slice(0, 8)}</span>
-                      </Badge>
-                    </TableCell>
+                {decided.map(e => (
+                  <TableRow key={e.id} hover>
+                    <TableCell>{e.errandNumber ?? e.id?.slice(0, 8)}</TableCell>
                     <TableCell>{e.title}</TableCell>
                     <TableCell>
                       <ErrandStatusChip status={e.status} />
                     </TableCell>
-                    <TableCell>{fmtDate(e.created)}</TableCell>
+                    <TableCell>{fmtDate(e.modified ?? e.created)}</TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button
+                          size="small"
+                          component="a"
+                          href={citizenDecisionPdfUrl(e.id!)}
+                          target="_blank"
+                          rel="noopener"
+                          startIcon={<OpenInNewOutlined />}
+                        >
+                          Visa
+                        </Button>
+                        <Button
+                          size="small"
+                          component="a"
+                          href={citizenDecisionPdfUrl(e.id!)}
+                          download
+                          startIcon={<DownloadOutlined />}
+                        >
+                          Ladda ner
+                        </Button>
+                      </Stack>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
