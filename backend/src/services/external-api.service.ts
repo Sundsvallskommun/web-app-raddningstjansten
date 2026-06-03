@@ -85,6 +85,10 @@ class ExternalApiService {
   public patch<T, D = unknown>(url: string, data?: D, config: AxiosRequestConfig = {}): Promise<ExternalResponse<T>> {
     return this.request<T>({ ...config, url, method: 'PATCH', data });
   }
+
+  public delete<T>(url: string, config: AxiosRequestConfig = {}): Promise<ExternalResponse<T>> {
+    return this.request<T>({ ...config, url, method: 'DELETE' });
+  }
 }
 
 export default ExternalApiService;

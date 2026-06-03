@@ -201,6 +201,7 @@ export interface FindErrandsResponse {
 }
 
 export interface SotningsobjektInput {
+  id?: string; // present when editing an existing object
   typ: string;
   fabrikat?: string;
   tillverkningsar?: number;
@@ -246,6 +247,26 @@ export async function submitApplication(
   form.append('utbildningsintyg', attachments.utbildningsintyg);
   const { data } = await apiService.post<{ id: string }>('/citizen/applications', form);
   return data;
+}
+
+/** Fields a citizen may edit on a non-terminal errand. */
+export interface EgensotningUpdateInput {
+  applicantEmail?: string;
+  applicantPhone?: string;
+  applicantFirstName?: string;
+  applicantLastName?: string;
+  applicantAddress?: string;
+  applicantZipCode?: string;
+  applicantCity?: string;
+  fastighetsbeteckning?: string;
+  propertyAddress?: string;
+  description?: string;
+  sotningsobjekt: SotningsobjektInput[];
+}
+
+/** Citizen updates the data of their own (non-terminal) errand. */
+export async function updateErrand(id: string, payload: EgensotningUpdateInput): Promise<void> {
+  await apiService.put(`/citizen/errands/${id}`, payload);
 }
 
 export async function fetchMyErrands(): Promise<Errand[]> {

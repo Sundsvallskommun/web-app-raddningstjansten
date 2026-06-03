@@ -1,4 +1,5 @@
 import {
+  Body,
   BodyParam,
   Controller,
   Get,
@@ -32,6 +33,21 @@ import {
   Stakeholder,
   StatusHistoryEntry,
 } from '@/data-contracts/rtj-management/data-contracts';
+
+/** Payload for a citizen editing a non-terminal egensotning errand. */
+interface EgensotningUpdate {
+  applicantEmail?: string;
+  applicantPhone?: string;
+  applicantFirstName?: string;
+  applicantLastName?: string;
+  applicantAddress?: string;
+  applicantZipCode?: string;
+  applicantCity?: string;
+  fastighetsbeteckning?: string;
+  propertyAddress?: string;
+  description?: string;
+  sotningsobjekt?: Array<Sotningsobjekt & { id?: string }>;
+}
 import { maskPersonNumber, maskReporterUserId } from '@utils/util';
 import { logger } from '@utils/logger';
 
@@ -39,6 +55,16 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /** Stored decision documents are named "Beslut-<errandNumber>.pdf". */
 const DECISION_FILE_PREFIX = 'Beslut-';
+
+/**
+ * Author used for notes recording the applicant's own actions (updates,
+ * kompletteringar). It is the marker that makes a note citizen-visible — the
+ * applicant never sees handläggare-authored notes.
+ */
+const APPLICANT_NOTE_AUTHOR = 'Sökande';
+
+/** An errand whose decision has been made can no longer be edited by the citizen. */
+const TERMINAL_STATUSES = ['DECIDED', 'REJECTED'];
 
 interface UploadedFileType {
   buffer: Buffer;
@@ -132,7 +158,7 @@ export class ErrandController {
         this.errandService.listAttachments(id).catch(() => []),
         this.errandService.getStatusHistory(id).catch(() => []),
         this.errandService.getDecisions(id).catch(() => []),
-        audience === 'admin' ? this.errandService.getNotes(id).catch(() => []) : Promise.resolve<Note[]>([]),
+        this.errandService.getNotes(id).catch(() => []),
       ]);
 
     const common = {
@@ -145,13 +171,14 @@ export class ErrandController {
     };
 
     if (audience === 'citizen') {
-      // Hide who is handling the errand from the applicant.
+      // Hide who is handling the errand from the applicant. Only the applicant's
+      // own notes (their updates/kompletteringar) are shown — never handläggare notes.
       return {
         ...common,
         errand: { ...this.sanitizeErrand(errand), assignedUserId: undefined },
         statusHistory: statusHistory.map(h => ({ ...h, changedBy: undefined })),
         decisions: decisions.map(d => ({ ...d, createdBy: undefined })),
-        notes: [],
+        notes: notes.filter(n => n.author === APPLICANT_NOTE_AUTHOR),
       };
     }
 
@@ -227,6 +254,93 @@ export class ErrandController {
     return this.buildDetail(errand, 'citizen');
   }
 
+  /**
+   * Citizen updates the data of their own errand. Allowed while the errand is
+   * non-terminal (not decided/rejected). All applicant-supplied fields can be
+   * changed (personnummer stays from the session, attachments use the supplement
+   * flow). The change is recorded in the log for both citizen and handläggare.
+   */
+  @Put('/citizen/errands/:id')
+  @UseBefore(authMiddleware)
+  async updateErrand(
+    @Param('id') id: string,
+    @Body() body: EgensotningUpdate,
+    @Req() req: Request,
+  ): Promise<{ status: string }> {
+    const user = req.session.user!;
+    const errand = await this.assertCitizenOwns(id, user);
+    if (TERMINAL_STATUSES.includes(errand.status ?? '')) {
+      throw new HttpException(409, 'A decided/rejected errand can no longer be updated');
+    }
+
+    // 1. Errand-level fields.
+    if (body.description !== undefined) {
+      await this.errandService.patchErrand(id, { description: body.description });
+    }
+
+    // 2. Egensotning details — personnummer always from the session, never the client.
+    await this.errandService
+      .putEgensotningDetails(id, {
+        personnummer: user.personNumber,
+        fastighetsbeteckning: body.fastighetsbeteckning,
+        propertyAddress: body.propertyAddress,
+      })
+      .catch(e => logger.error(`Could not update egensotning-details for ${id}: ${(e as Error).message}`));
+
+    // 3. Applicant stakeholder (name, address, contact channels).
+    const stakeholders = await this.errandService.getStakeholders(id).catch(() => []);
+    const applicant = stakeholders.find(s => s.role === 'APPLICANT');
+    if (applicant?.id) {
+      const contactChannels = [
+        ...(body.applicantEmail ? [{ key: 'Email', value: body.applicantEmail }] : []),
+        ...(body.applicantPhone ? [{ key: 'Phone', value: body.applicantPhone }] : []),
+      ];
+      await this.errandService
+        .updateStakeholder(id, applicant.id, {
+          firstName: body.applicantFirstName,
+          lastName: body.applicantLastName,
+          address: body.applicantAddress,
+          zipCode: body.applicantZipCode,
+          city: body.applicantCity,
+          contactChannels,
+        })
+        .catch(e => logger.error(`Could not update applicant stakeholder for ${id}: ${(e as Error).message}`));
+    }
+
+    // 4. Reconcile sotningsobjekt: patch existing, add new, delete removed.
+    const incoming = body.sotningsobjekt ?? [];
+    const current = await this.errandService.getSotningsobjekt(id).catch(() => []);
+    const incomingIds = new Set(incoming.filter(o => o.id).map(o => o.id));
+    for (const o of incoming) {
+      const payload: Sotningsobjekt = {
+        typ: o.typ,
+        fabrikat: o.fabrikat,
+        tillverkningsar: o.tillverkningsar,
+        bransleslag: o.bransleslag,
+        branslemangd: o.branslemangd,
+        sotningsintervallVeckor: o.sotningsintervallVeckor,
+      };
+      if (o.id) {
+        await this.errandService.updateSotningsobjekt(id, o.id, payload);
+      } else {
+        await this.errandService.addSotningsobjekt(id, payload);
+      }
+    }
+    for (const c of current) {
+      if (c.id && !incomingIds.has(c.id)) {
+        await this.errandService.deleteSotningsobjekt(id, c.id);
+      }
+    }
+
+    // 5. Audit note — visible to the handläggare and to the applicant.
+    await this.errandService
+      .addNote(id, { author: APPLICANT_NOTE_AUTHOR, body: 'Uppdaterade ärendets uppgifter' })
+      .catch(e => logger.error(`Could not add update note for ${id}: ${(e as Error).message}`));
+
+    logger.info(`Citizen updated errand ${id}`);
+    return { status: 'ok' };
+  }
+
   /** Citizen downloads an attachment from their own errand. */
   @Get('/citizen/errands/:id/attachments/:attachmentId/file')
   @UseBefore(authMiddleware)
@@ -272,6 +386,9 @@ export class ErrandController {
       await this.errandService.addAttachment(id, file);
     }
     await this.errandService.sendProcessMessage(id, { messageName: 'komplettering-received' });
+    await this.errandService
+      .addNote(id, { author: APPLICANT_NOTE_AUTHOR, body: 'Skickade in komplettering' })
+      .catch(e => logger.error(`Could not add supplement note for ${id}: ${(e as Error).message}`));
     return { status: 'ok' };
   }
 

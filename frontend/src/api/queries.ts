@@ -10,8 +10,10 @@ import {
   fetchMyErrands,
   submitApplication,
   supplementErrand,
+  updateErrand,
   type ApplicationAttachments,
   type EgensotningApplicationInput,
+  type EgensotningUpdateInput,
   type ErrandDetail,
 } from './api-service';
 
@@ -75,6 +77,17 @@ export function useSubmitApplication() {
     mutationFn: (vars: { application: EgensotningApplicationInput; attachments: ApplicationAttachments }) =>
       submitApplication(vars.application, vars.attachments),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.myErrands }),
+  });
+}
+
+export function useUpdateErrand(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EgensotningUpdateInput) => updateErrand(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.citizenErrand(id) });
+      qc.invalidateQueries({ queryKey: qk.myErrands });
+    },
   });
 }
 

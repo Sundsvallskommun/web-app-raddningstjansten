@@ -18,6 +18,7 @@ import {
   ArrowBack,
   DeleteOutline,
   DownloadOutlined,
+  EditOutlined,
   UploadFileOutlined,
 } from "@mui/icons-material";
 import { apiService, citizenAttachmentDownloadUrl } from "@/api/api-service";
@@ -146,6 +147,17 @@ export function CitizenErrandDetailPage() {
                   <Alert severity={outcome.severity} sx={{ mt: 2 }}>
                     {outcome.text}
                   </Alert>
+                )}
+                {!isDecided && (
+                  <Box sx={{ mt: 2 }}>
+                    <Button
+                      variant='outlined'
+                      startIcon={<EditOutlined />}
+                      onClick={() => navigate(`/errands/${id}/edit`)}
+                    >
+                      Uppdatera uppgifter
+                    </Button>
+                  </Box>
                 )}
               </Paper>
 
@@ -332,6 +344,35 @@ export function CitizenErrandDetailPage() {
                       </CardContent>
                     </Card>
                   ))}
+                </>
+              )}
+
+              {data.notes.length > 0 && (
+                <>
+                  <Typography variant='h6'>Händelselogg</Typography>
+                  <Paper sx={{ p: 2 }}>
+                    <Stack spacing={1.5}>
+                      {[...data.notes]
+                        .sort((a, b) =>
+                          (b.created ?? "").localeCompare(a.created ?? ""),
+                        )
+                        .map((n) => (
+                          <Box
+                            key={n.id}
+                            sx={{
+                              borderLeft: "3px solid",
+                              borderColor: "divider",
+                              pl: 1.5,
+                            }}
+                          >
+                            <Typography variant='body2'>{n.body}</Typography>
+                            <Typography variant='caption' color='text.secondary'>
+                              {fmt(n.created)}
+                            </Typography>
+                          </Box>
+                        ))}
+                    </Stack>
+                  </Paper>
                 </>
               )}
             </Stack>
