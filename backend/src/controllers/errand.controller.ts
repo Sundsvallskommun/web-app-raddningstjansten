@@ -293,20 +293,31 @@ export class ErrandController {
     return this.buildDetail(errand, 'admin');
   }
 
-  /** Admin assigns themselves as the handläggare for an errand. */
+  /**
+   * Admin assigns themselves as the handläggare. Taking on an errand also moves
+   * it to status ONGOING ("Pågående") — unless it is already in a terminal state
+   * (a decided/rejected errand must not be reopened by an assignment).
+   */
   @Post('/admin/errands/:id/assign')
   @UseBefore(authMiddleware, adminMiddleware)
   async assignSelf(@Param('id') id: string, @Req() req: Request): Promise<{ status: string }> {
     const user = req.session.user!;
     const userId = user.username ?? '';
-    await this.errandService.assignErrand(id, userId);
+
+    const errand = await this.errandService.getErrand(id);
+    const isTerminal = errand.status === 'DECIDED' || errand.status === 'REJECTED';
+    const nextStatus = isTerminal ? undefined : 'ONGOING';
+
+    await this.errandService.assignErrand(id, userId, nextStatus);
     await this.errandService
       .addNote(id, {
         author: user.name || userId,
-        body: `Tilldelade sig själv som handläggare (${userId})`,
+        body: nextStatus
+          ? `Tilldelade sig själv som handläggare (${userId}). Status: Pågående.`
+          : `Tilldelade sig själv som handläggare (${userId})`,
       })
       .catch(e => logger.error(`Could not add assignment note for ${id}: ${(e as Error).message}`));
-    logger.info(`Errand ${id} assigned to ${userId}`);
+    logger.info(`Errand ${id} assigned to ${userId}${nextStatus ? ` (status -> ${nextStatus})` : ''}`);
     return { status: 'ok' };
   }
 

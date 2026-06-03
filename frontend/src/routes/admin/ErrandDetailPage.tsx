@@ -117,6 +117,10 @@ export function ErrandDetailPage() {
 
   const outcome = data ? outcomeMessage(data.details, "admin") : null;
   const inReview = data?.errand.status === "UNDER_MANUAL_REVIEW";
+  // The "granskas manuellt" message is only relevant while the errand is
+  // actually in manual review — hide it once it has moved on (e.g. decided).
+  const showOutcome =
+    !!outcome && (inReview || data?.details?.lastOutcome !== "NEEDS_MANUAL_REVIEW");
 
   const audit: AuditItem[] = data
     ? [
@@ -176,7 +180,7 @@ export function ErrandDetailPage() {
                   <ErrandStatusChip status={data.errand.status} />
                 </Stack>
 
-                {outcome && (
+                {showOutcome && outcome && (
                   <Alert severity={outcome.severity} sx={{ my: 1 }}>
                     {outcome.text}
                   </Alert>

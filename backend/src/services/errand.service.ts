@@ -156,8 +156,9 @@ export class ErrandService {
 
   // ---- Assignment ----
 
-  public async assignErrand(errandId: string, assignedUserId: string): Promise<void> {
-    await this.api.patch(`${this.base()}/${errandId}`, { assignedUserId });
+  /** Assign a handläggare and optionally move the errand to a new status. */
+  public async assignErrand(errandId: string, assignedUserId: string, status?: string): Promise<void> {
+    await this.api.patch(`${this.base()}/${errandId}`, { assignedUserId, ...(status ? { status } : {}) });
   }
 
   // ---- Process messages (handläggare actions) ----

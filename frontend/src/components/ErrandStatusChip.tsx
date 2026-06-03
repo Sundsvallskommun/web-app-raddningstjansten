@@ -10,6 +10,7 @@ interface StatusMeta {
 const STATUS: Record<string, StatusMeta> = {
   REGISTERED: { label: 'Inskickad', color: 'info' },
   NEW: { label: 'Ny', color: 'info' },
+  ONGOING: { label: 'Pågående', color: 'info' },
   UNDER_MANUAL_REVIEW: { label: 'Manuell granskning', color: 'warning' },
   AWAITING_SUPPLEMENTATION: { label: 'Väntar på komplettering', color: 'warning' },
   DECIDED: { label: 'Beslutad', color: 'success' },
