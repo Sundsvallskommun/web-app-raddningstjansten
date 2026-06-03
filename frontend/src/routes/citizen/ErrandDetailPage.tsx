@@ -27,7 +27,11 @@ import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
 import { markSeen } from "@/utils/seenErrands";
-import { attachmentCategoryLabel, outcomeMessage } from "@/utils/egensotning";
+import {
+  applicantName,
+  attachmentCategoryLabel,
+  outcomeMessage,
+} from "@/utils/egensotning";
 
 const fmt = (s?: string) => (s ? new Date(s).toLocaleString("sv-SE") : "—");
 
@@ -124,10 +128,11 @@ export function CitizenErrandDetailPage() {
                   <Typography variant='h5'>{data.errand.title}</Typography>
                   <ErrandStatusChip status={data.errand.status} />
                 </Stack>
-                <Typography variant='body2' color='text.secondary'>
-                  {data.errand.errandNumber ?? data.errand.id} · inskickad{" "}
-                  {fmt(data.errand.created)}
-                </Typography>
+                {applicantName(data.stakeholders) && (
+                  <Typography variant='subtitle1'>
+                    {applicantName(data.stakeholders)}
+                  </Typography>
+                )}
                 {outcome && (
                   <Alert severity={outcome.severity} sx={{ mt: 2 }}>
                     {outcome.text}

@@ -1,4 +1,12 @@
-import type { AttachmentCategory, EgensotningDetails } from '@/api/api-service';
+import type { AttachmentCategory, EgensotningDetails, Stakeholder } from '@/api/api-service';
+
+/** The applicant's display name, taken from the APPLICANT stakeholder. */
+export function applicantName(stakeholders: Stakeholder[]): string | null {
+  const a = stakeholders.find(s => s.role === 'APPLICANT') ?? stakeholders[0];
+  if (!a) return null;
+  const name = a.organizationName || `${a.firstName ?? ''} ${a.lastName ?? ''}`.trim();
+  return name || null;
+}
 
 // Swedish labels for the attachment category the server tags each upload with.
 const ATTACHMENT_CATEGORY_LABEL: Record<AttachmentCategory, string> = {

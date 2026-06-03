@@ -21,13 +21,21 @@ import {
   AssignmentIndOutlined,
 } from "@mui/icons-material";
 import { adminAttachmentDownloadUrl } from "@/api/api-service";
-import { useAdminErrand, useAdminDecision, useAssignErrand } from "@/api/queries";
+import {
+  useAdminErrand,
+  useAdminDecision,
+  useAssignErrand,
+} from "@/api/queries";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip, statusLabel } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
 import { markSeen } from "@/utils/seenErrands";
-import { attachmentCategoryLabel, outcomeMessage } from "@/utils/egensotning";
+import {
+  applicantName,
+  attachmentCategoryLabel,
+  outcomeMessage,
+} from "@/utils/egensotning";
 
 const gridSx = {
   display: "grid",
@@ -96,13 +104,16 @@ export function ErrandDetailPage() {
       await assign.mutateAsync();
       setActionMsg("Du tilldelades som handläggare.");
     } catch (e) {
-      setActionMsg(e instanceof Error ? e.message : "Tilldelningen misslyckades.");
+      setActionMsg(
+        e instanceof Error ? e.message : "Tilldelningen misslyckades.",
+      );
     }
   }
 
   const acting = decision.isPending;
   const assignedToMe =
-    !!data?.errand.assignedUserId && data.errand.assignedUserId === user?.username;
+    !!data?.errand.assignedUserId &&
+    data.errand.assignedUserId === user?.username;
 
   const outcome = data ? outcomeMessage(data.details, "admin") : null;
   const inReview = data?.errand.status === "UNDER_MANUAL_REVIEW";
@@ -164,9 +175,7 @@ export function ErrandDetailPage() {
                   <Typography variant='h5'>{data.errand.title}</Typography>
                   <ErrandStatusChip status={data.errand.status} />
                 </Stack>
-                <Typography variant='body2' color='text.secondary' gutterBottom>
-                  {data.errand.errandNumber ?? data.errand.id}
-                </Typography>
+
                 {outcome && (
                   <Alert severity={outcome.severity} sx={{ my: 1 }}>
                     {outcome.text}
@@ -174,11 +183,22 @@ export function ErrandDetailPage() {
                 )}
                 <Divider sx={{ my: 2 }} />
                 <Box sx={gridSx}>
+                  {applicantName(data.stakeholders) && (
+                    <Field
+                      label='Sökandes namn'
+                      value={applicantName(data.stakeholders)}
+                    />
+                  )}
                   <Field
                     label='Sökandes e-post'
                     value={data.errand.applicantEmail}
                   />
-                  <Field label='Rapportör' value={data.errand.reporterUserId} />
+                  {data.errand.reporterUserId && (
+                    <Field
+                      label='Rapportör'
+                      value={data.errand.reporterUserId}
+                    />
+                  )}
                   <Field
                     label='Handläggare'
                     value={data.errand.assignedUserId}
@@ -377,7 +397,9 @@ export function ErrandDetailPage() {
                 <Field
                   label='Tilldelad'
                   value={
-                    assignedToMe ? `${data.errand.assignedUserId} (du)` : data.errand.assignedUserId
+                    assignedToMe
+                      ? `${data.errand.assignedUserId} (du)`
+                      : data.errand.assignedUserId
                   }
                 />
                 {!assignedToMe && (
