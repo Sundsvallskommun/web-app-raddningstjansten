@@ -12,10 +12,10 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@tanstack/react-query": "^5.62.0",
     "@fontsource/mulish": "^5.2.5",
     "@mui/icons-material": "^6.5.0",
     "@mui/material": "^6.5.0",
+    "@tanstack/react-query": "^5.62.0",
     "axios": "^1.13.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -26,6 +26,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.9.3",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vite-plugin-svgr": "^5.2.0"
   }
 }

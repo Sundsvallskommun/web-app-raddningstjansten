@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   Alert,
   Box,
@@ -20,10 +20,10 @@ import {
   Stack,
   TextField,
   Typography,
-} from '@mui/material';
-import { apiService } from '@/api/api-service';
-import { useAuth } from '@/auth/AuthContext';
-import { RaddningstjanstSymbol } from '@/components/RaddningstjanstSymbol';
+} from "@mui/material";
+import { apiService } from "@/api/api-service";
+import { useAuth } from "@/auth/AuthContext";
+import Logo from "@/assets/logo-red.svg?react";
 
 const POLL_INTERVAL_MS = 1000;
 const POLL_TIMEOUT_MS = 30000;
@@ -34,9 +34,9 @@ interface PersonOption {
 }
 
 const HINT_MESSAGES: Record<string, string> = {
-  wrongPassword: 'Fel lösenord.',
-  notConfigured: 'Inloggning är inte konfigurerad (lösenord saknas).',
-  noPerson: 'Välj en användare.',
+  wrongPassword: "Fel lösenord.",
+  notConfigured: "Inloggning är inte konfigurerad (lösenord saknas).",
+  noPerson: "Välj en användare.",
 };
 
 /**
@@ -47,26 +47,26 @@ const HINT_MESSAGES: Record<string, string> = {
 export function CitizenLoginPage() {
   const navigate = useNavigate();
   const { refresh } = useAuth();
-  const [mode, setMode] = useState<'saml' | 'mock'>('mock');
+  const [mode, setMode] = useState<"saml" | "mock">("mock");
   const [open, setOpen] = useState(false);
   const [persons, setPersons] = useState<PersonOption[]>([]);
   const [personIndex, setPersonIndex] = useState<number | null>(null);
-  const [password, setPassword] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'signing'>('idle');
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "signing">("idle");
   const [error, setError] = useState<string | null>(null);
 
   // Decide which login UI to show: real OneGate BankID (redirect) or the mock dialog.
   useEffect(() => {
     apiService
-      .get<{ mode: 'saml' | 'mock' }>('/citizen/login/config')
+      .get<{ mode: "saml" | "mock" }>("/citizen/login/config")
       .then(({ data }) => setMode(data.mode))
-      .catch(() => setMode('mock'));
+      .catch(() => setMode("mock"));
   }, []);
 
   function startBankId() {
-    if (mode === 'saml') {
+    if (mode === "saml") {
       // Full-page redirect to the BFF, which hands off to OneGate (same as admin SAML).
-      window.location.href = '/api/saml/citizen/login';
+      window.location.href = "/api/saml/citizen/login";
       return;
     }
     openDialog();
@@ -76,101 +76,117 @@ export function CitizenLoginPage() {
     if (!open) return;
     setError(null);
     apiService
-      .get<{ persons: PersonOption[] }>('/citizen/login/options')
+      .get<{ persons: PersonOption[] }>("/citizen/login/options")
       .then(({ data }) => {
         setPersons(data.persons);
         setPersonIndex(data.persons[0]?.index ?? null);
       })
-      .catch(() => setError('Kunde inte hämta användare.'));
+      .catch(() => setError("Kunde inte hämta användare."));
   }, [open]);
 
   function openDialog() {
-    setPassword('');
-    setStatus('idle');
+    setPassword("");
+    setStatus("idle");
     setError(null);
     setOpen(true);
   }
 
   function closeDialog() {
-    if (status === 'signing') return; // don't close mid-sign
+    if (status === "signing") return; // don't close mid-sign
     setOpen(false);
   }
 
   async function login() {
     if (personIndex === null) {
-      setError('Välj en användare.');
+      setError("Välj en användare.");
       return;
     }
     setError(null);
-    setStatus('loading');
+    setStatus("loading");
     try {
-      const { data: order } = await apiService.post<{ orderRef: string }>('/citizen/login/start', {
-        personIndex,
-        password,
-      });
-      setStatus('signing');
+      const { data: order } = await apiService.post<{ orderRef: string }>(
+        "/citizen/login/start",
+        {
+          personIndex,
+          password,
+        },
+      );
+      setStatus("signing");
 
       const deadline = Date.now() + POLL_TIMEOUT_MS;
       while (Date.now() < deadline) {
-        const { data } = await apiService.post<{ status: string }>('/citizen/login/collect', {
-          orderRef: order.orderRef,
-        });
-        if (data.status === 'complete') {
+        const { data } = await apiService.post<{ status: string }>(
+          "/citizen/login/collect",
+          {
+            orderRef: order.orderRef,
+          },
+        );
+        if (data.status === "complete") {
           await refresh();
-          navigate('/dashboard', { replace: true });
+          navigate("/dashboard", { replace: true });
           return;
         }
-        if (data.status === 'failed') {
-          throw new Error('Inloggningen avbröts.');
+        if (data.status === "failed") {
+          throw new Error("Inloggningen avbröts.");
         }
-        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       }
-      throw new Error('Tidsgränsen för inloggning överskreds.');
+      throw new Error("Tidsgränsen för inloggning överskreds.");
     } catch (e) {
-      setStatus('idle');
+      setStatus("idle");
       if (axios.isAxiosError(e)) {
-        const hint = (e.response?.data as { hintCode?: string } | undefined)?.hintCode;
-        setError((hint && HINT_MESSAGES[hint]) || 'Något gick fel vid inloggning.');
+        const hint = (e.response?.data as { hintCode?: string } | undefined)
+          ?.hintCode;
+        setError(
+          (hint && HINT_MESSAGES[hint]) || "Något gick fel vid inloggning.",
+        );
       } else {
-        setError(e instanceof Error ? e.message : 'Något gick fel vid inloggning.');
+        setError(
+          e instanceof Error ? e.message : "Något gick fel vid inloggning.",
+        );
       }
     }
   }
 
-  const busy = status === 'loading' || status === 'signing';
+  const busy = status === "loading" || status === "signing";
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8, px: 2 }}>
-      <Card variant="outlined" sx={{ maxWidth: 420, width: '100%' }}>
+    <Box sx={{ display: "flex", justifyContent: "center", mt: 8, px: 2 }}>
+      <Card variant='outlined' sx={{ maxWidth: 420, width: "100%" }}>
         <CardContent>
-          <Stack spacing={2} alignItems="center">
-            <Box sx={{ color: 'primary.main' }}>
-              <RaddningstjanstSymbol size={56} />
+          <Stack spacing={2} alignItems='center'>
+            <Box sx={{ color: "primary.main" }}>
+              <Logo />
             </Box>
-            <Typography variant="h5">Räddningstjänsten</Typography>
-            <Typography color="text.secondary" textAlign="center">
+            <Typography variant='h5'>Räddningstjänsten</Typography>
+            <Typography color='text.secondary' textAlign='center'>
               Logga in som medborgare med BankID.
             </Typography>
-            <Button variant="contained" size="large" onClick={startBankId} fullWidth>
+            <Button
+              variant='contained'
+              size='large'
+              onClick={startBankId}
+              fullWidth
+            >
               Logga in med BankID
             </Button>
           </Stack>
         </CardContent>
       </Card>
 
-      <Dialog open={open} onClose={closeDialog} maxWidth="xs" fullWidth>
+      <Dialog open={open} onClose={closeDialog} maxWidth='xs' fullWidth>
         <DialogTitle>Logga in med BankID (mock)</DialogTitle>
         <DialogContent>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity='error' sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
 
-          {status === 'signing' ? (
-            <Stack spacing={1} alignItems="center" sx={{ py: 3 }}>
+          {status === "signing" ? (
+            <Stack spacing={1} alignItems='center' sx={{ py: 3 }}>
               <CircularProgress />
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant='body2' color='text.secondary'>
                 Öppna BankID-appen… (mock)
               </Typography>
             </Stack>
@@ -179,10 +195,10 @@ export function CitizenLoginPage() {
               <FormControl>
                 <FormLabel>Välj användare</FormLabel>
                 <RadioGroup
-                  value={personIndex ?? ''}
-                  onChange={e => setPersonIndex(Number(e.target.value))}
+                  value={personIndex ?? ""}
+                  onChange={(e) => setPersonIndex(Number(e.target.value))}
                 >
-                  {persons.map(p => (
+                  {persons.map((p) => (
                     <FormControlLabel
                       key={p.index}
                       value={p.index}
@@ -194,25 +210,29 @@ export function CitizenLoginPage() {
                 </RadioGroup>
               </FormControl>
               <TextField
-                label="Lösenord"
-                type="password"
+                label='Lösenord'
+                type='password'
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 disabled={busy}
                 fullWidth
-                onKeyDown={e => {
-                  if (e.key === 'Enter') login();
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") login();
                 }}
               />
             </Stack>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={closeDialog} disabled={status === 'signing'}>
+          <Button onClick={closeDialog} disabled={status === "signing"}>
             Avbryt
           </Button>
-          <Button variant="contained" onClick={login} disabled={busy || persons.length === 0}>
-            {status === 'loading' ? <CircularProgress size={24} /> : 'Logga in'}
+          <Button
+            variant='contained'
+            onClick={login}
+            disabled={busy || persons.length === 0}
+          >
+            {status === "loading" ? <CircularProgress size={24} /> : "Logga in"}
           </Button>
         </DialogActions>
       </Dialog>

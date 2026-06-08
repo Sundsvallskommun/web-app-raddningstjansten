@@ -20,7 +20,7 @@ import { ReactElement, useState } from "react";
 import { ProfileDialog } from "./ProfileDialog";
 import { NavDrawer } from "./NavDrawer";
 import { Footer } from "./Footer";
-import { RaddningstjanstSymbol } from "./RaddningstjanstSymbol";
+import Logo from "@/assets/logo-red.svg?react";
 import { CONTENT_MAX_WIDTH } from "@/theme";
 
 // Keep the app-bar row and page content within the same centered max width.
@@ -76,7 +76,7 @@ export const Wrapper = ({
         <Toolbar disableGutters sx={{ ...contentSx, width: "100%" }}>
           {showNav && <NavDrawer navType={navType} />}
           <Box sx={{ display: "flex", mr: 1.5 }}>
-            <RaddningstjanstSymbol size={28} />
+            <Logo width={"48px"} />
           </Box>
           <Typography variant='h6' sx={{ flexGrow: 1 }}>
             {title}
