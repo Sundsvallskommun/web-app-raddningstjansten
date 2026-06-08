@@ -17,6 +17,16 @@ const validateEnv = () => {
     CITIZEN_PERSON_NUMBER: str(),
     // Required to complete the mock citizen login; empty disables login.
     CITIZEN_LOGIN_PASSWORD: str({ default: '' }),
+    // Citizen login mode: 'mock' (default) or 'saml' (OneGate BankID federation).
+    CITIZEN_AUTH_MODE: str({ default: 'mock', choices: ['mock', 'saml'] }),
+    // Citizen SAML (OneGate). Optional until the federation is set up.
+    SAML_CITIZEN_ENTRY_SSO: str({ default: '' }),
+    SAML_CITIZEN_CALLBACK_URL: str({ default: '' }),
+    SAML_CITIZEN_ISSUER: str({ default: '' }),
+    SAML_CITIZEN_IDP_PUBLIC_CERT: str({ default: '' }),
+    SAML_CITIZEN_PRIVATE_KEY: str({ default: '' }),
+    SAML_CITIZEN_SUCCESS_REDIRECT: str({ default: '' }),
+    SAML_CITIZEN_FAILURE_REDIRECT: str({ default: '' }),
     // Admin SAML against the fake SSO IdP
     SAML_ENTRY_SSO: url(),
     SAML_CALLBACK_URL: url(),

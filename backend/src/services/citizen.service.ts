@@ -14,4 +14,17 @@ export class CitizenService {
     const res = await this.apiService.get<CitizenExtended>({ url });
     return res.data;
   }
+
+  /**
+   * Resolves a personId (guid) from a Swedish personal number.
+   * GET citizen/3.0/{municipalityId}/{personNumber}/guid
+   *
+   * Used by the OneGate SAML login to map the BankID personnummer (from the SAML
+   * assertion) to the Citizen personId the rest of the app keys on.
+   */
+  public async getPersonId(personNumber: string, municipalityId: string = MUNICIPALITY_ID): Promise<string> {
+    const url = `${getApiBase('citizen')}/${municipalityId}/${personNumber}/guid`;
+    const res = await this.apiService.get<string>({ url });
+    return typeof res.data === 'string' ? res.data : String(res.data ?? '');
+  }
 }

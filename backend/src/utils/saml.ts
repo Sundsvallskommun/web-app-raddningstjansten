@@ -2,6 +2,11 @@ import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import {
   ADMIN_GROUP,
   SAML_CALLBACK_URL,
+  SAML_CITIZEN_CALLBACK_URL,
+  SAML_CITIZEN_ENTRY_SSO,
+  SAML_CITIZEN_IDP_PUBLIC_CERT,
+  SAML_CITIZEN_ISSUER,
+  SAML_CITIZEN_PRIVATE_KEY,
   SAML_ENTRY_SSO,
   SAML_IDP_PUBLIC_CERT,
   SAML_ISSUER,
@@ -9,6 +14,7 @@ import {
   SAML_PRIVATE_KEY,
 } from '@config';
 import { SessionUser } from '@interfaces/user.interface';
+import { CitizenService } from '@services/citizen.service';
 import { logger } from '@utils/logger';
 
 /**
@@ -94,6 +100,96 @@ export const createSamlStrategy = (): SamlStrategy =>
 
       logger.info(`SAML login ok for ${username} (groups: ${groups.join(', ')})`);
       return done(null, user);
+    }) as any,
+    // logout verify
+    ((_req: unknown, _profile: unknown, done: any) => done(null, {})) as any,
+  );
+
+/**
+ * Citizen SAML config — a separate Service Provider federated against OneGate,
+ * whose chosen authentication method is BankID. OneGate performs the BankID
+ * dialog and returns the personnummer + name as SAML attributes.
+ */
+export const citizenSamlConfig = {
+  passReqToCallback: true as const,
+  disableRequestedAuthnContext: true,
+  identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
+  callbackUrl: SAML_CITIZEN_CALLBACK_URL,
+  entryPoint: SAML_CITIZEN_ENTRY_SSO,
+  issuer: SAML_CITIZEN_ISSUER,
+  idpCert: normalizeCertificate(SAML_CITIZEN_IDP_PUBLIC_CERT) ?? '',
+  privateKey: normalizeCertificate(SAML_CITIZEN_PRIVATE_KEY),
+  wantAssertionsSigned: false,
+  wantAuthnResponseSigned: false,
+  audience: false as const,
+  acceptedClockSkewMs: -1,
+};
+
+const citizenService = new CitizenService();
+
+/** First non-empty SAML attribute value, tolerant of arrays and casing variants. */
+const pick = (profile: Record<string, any>, ...keys: string[]): string => {
+  for (const key of keys) {
+    const raw = profile[key];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (value != null && String(value).trim() !== '') return String(value).trim();
+  }
+  return '';
+};
+
+/**
+ * Builds the SAML strategy used to authenticate citizens against OneGate.
+ * The verify callback maps the BankID personnummer to a Citizen personId (guid)
+ * and stores a citizen SessionUser — the exact shape the mock login produced, so
+ * the rest of the app (/me, ownership, submit) is unchanged.
+ */
+export const createCitizenSamlStrategy = (): SamlStrategy =>
+  new SamlStrategy(
+    citizenSamlConfig,
+    // sign-on verify (async: resolves personnummer -> Citizen personId)
+    ((_req: unknown, profile: Record<string, any>, done: any) => {
+      void (async () => {
+        try {
+          if (!profile) return done(new Error('SAML_MISSING_PROFILE'));
+
+          const personNumber = pick(
+            profile,
+            'citizenIdentifier',
+            'personalNumber',
+            'personnummer',
+            'personNumber',
+          ).replace(/\D/g, '');
+          const givenName = pick(profile, 'givenname', 'givenName', 'firstname');
+          const surname = pick(profile, 'sn', 'surname', 'Surname', 'lastname');
+
+          if (!personNumber) {
+            logger.warn('Citizen SAML login denied: assertion is missing a personnummer');
+            return done(null, false, { message: 'SAML_MISSING_ATTRIBUTES' });
+          }
+
+          let personId = '';
+          try {
+            personId = await citizenService.getPersonId(personNumber);
+          } catch (e) {
+            logger.error(`Citizen SAML: Citizen guid lookup failed: ${(e as Error).message}`);
+          }
+          if (!personId) {
+            return done(null, false, { message: 'CITIZEN_LOOKUP_FAILED' });
+          }
+
+          const user: SessionUser = {
+            type: 'citizen',
+            personId,
+            personNumber,
+            name: `${givenName} ${surname}`.trim() || 'Medborgare',
+          };
+
+          logger.info(`Citizen SAML login ok for personId ${personId}`);
+          return done(null, user);
+        } catch (err) {
+          return done(err as Error);
+        }
+      })();
     }) as any,
     // logout verify
     ((_req: unknown, _profile: unknown, done: any) => done(null, {})) as any,

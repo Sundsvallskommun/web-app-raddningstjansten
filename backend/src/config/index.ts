@@ -23,6 +23,16 @@ export const {
   CITIZEN_PERSON_NUMBER,
   // Shared password required to complete the mock citizen login.
   CITIZEN_LOGIN_PASSWORD,
+  // Citizen login mode: 'saml' (OneGate BankID federation) or 'mock' (default).
+  CITIZEN_AUTH_MODE,
+  // Citizen SAML (OneGate) - a separate Service Provider from the admin SAML below.
+  SAML_CITIZEN_ENTRY_SSO,
+  SAML_CITIZEN_CALLBACK_URL,
+  SAML_CITIZEN_ISSUER,
+  SAML_CITIZEN_IDP_PUBLIC_CERT,
+  SAML_CITIZEN_PRIVATE_KEY,
+  SAML_CITIZEN_SUCCESS_REDIRECT,
+  SAML_CITIZEN_FAILURE_REDIRECT,
   // Admin SAML (fake SSO IdP) - Service Provider config
   SAML_ENTRY_SSO,
   SAML_CALLBACK_URL,
@@ -65,3 +75,18 @@ export const CITIZEN_PERSONS: CitizenPerson[] = splitCsv(CITIZEN_PERSON_ID).map(
   personId,
   personNumber: splitCsv(CITIZEN_PERSON_NUMBER)[i] ?? '',
 }));
+
+/**
+ * True when the citizen SAML SP (OneGate) is configured enough to register the
+ * passport strategy and routes. Until OneGate has answered with entryPoint/cert,
+ * this is false and the app keeps using the mock login.
+ */
+export const citizenSamlConfigured = (): boolean =>
+  Boolean(SAML_CITIZEN_ENTRY_SSO && SAML_CITIZEN_IDP_PUBLIC_CERT && SAML_CITIZEN_CALLBACK_URL);
+
+/**
+ * Effective citizen login mode. 'saml' only when explicitly requested AND the SP
+ * is actually configured; otherwise 'mock' (the dev/POC fallback).
+ */
+export const citizenAuthMode = (): 'saml' | 'mock' =>
+  (CITIZEN_AUTH_MODE ?? '').trim().toLowerCase() === 'saml' && citizenSamlConfigured() ? 'saml' : 'mock';

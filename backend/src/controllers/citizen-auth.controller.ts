@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Body, Controller, Get, Post, Req, Res } from 'routing-controllers';
 import { Request, Response } from 'express';
 
-import { CITIZEN_LOGIN_PASSWORD, CITIZEN_PERSONS, CitizenPerson } from '@config';
+import { citizenAuthMode, CITIZEN_LOGIN_PASSWORD, CITIZEN_PERSONS, CitizenPerson } from '@config';
 import { logger } from '@utils/logger';
 
 /**
@@ -29,6 +29,15 @@ const personLabel = (personId: string) => personId.slice(0, 8);
 
 @Controller()
 export class CitizenAuthController {
+  /**
+   * Tells the frontend which login UI to show: 'saml' → redirect to OneGate
+   * BankID; 'mock' → the test-person picker dialog below.
+   */
+  @Get('/citizen/login/config')
+  config(@Res() res: Response) {
+    return res.json({ mode: citizenAuthMode() });
+  }
+
   /** Lists the selectable mock citizens (truncated personId only — no personnummer). */
   @Get('/citizen/login/options')
   options(@Res() res: Response) {

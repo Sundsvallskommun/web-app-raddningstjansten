@@ -13,18 +13,24 @@ import { useExpressServer } from 'routing-controllers';
 import {
   BASE_URL_PREFIX,
   CREDENTIALS,
+  citizenSamlConfigured,
   LOG_FORMAT,
   NODE_ENV,
   ORIGIN,
   PORT,
+  SAML_CITIZEN_FAILURE_REDIRECT,
+  SAML_CITIZEN_SUCCESS_REDIRECT,
   SAML_FAILURE_REDIRECT,
   SAML_SUCCESS_REDIRECT,
   SECRET_KEY,
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { SessionUser } from '@interfaces/user.interface';
-import { createSamlStrategy } from '@utils/saml';
+import { createCitizenSamlStrategy, createSamlStrategy } from '@utils/saml';
 import { logger, stream } from '@utils/logger';
+
+/** First configured origin (ORIGIN may be a comma-separated allowlist). */
+const primaryOrigin = (): string => (ORIGIN ? ORIGIN.split(',')[0].trim() : '');
 
 class App {
   public app: express.Application;
@@ -90,6 +96,11 @@ class App {
     // is req.session.user (set in the SAML callback), so no passport.session().
     this.app.use(passport.initialize());
     passport.use('saml', createSamlStrategy());
+    // Citizen BankID via OneGate — only when the federation is configured.
+    if (citizenSamlConfigured()) {
+      passport.use('saml-citizen', createCitizenSamlStrategy());
+      logger.info('Citizen SAML (OneGate) strategy registered');
+    }
   }
 
   /**
@@ -150,6 +161,65 @@ class App {
         res.type('application/xml').send(metadata);
       } catch (e) {
         logger.error(`Could not generate SP metadata: ${(e as Error).message}`);
+        res.status(501).json({ message: 'METADATA_UNAVAILABLE' });
+      }
+    });
+
+    this.initializeCitizenSamlRoutes(prefix);
+  }
+
+  /**
+   * Citizen BankID login via OneGate (separate SP from admin). Registered only
+   * when the federation is configured; otherwise the app stays on the mock login.
+   * The callback stores the same citizen session shape as the mock collect.
+   */
+  private initializeCitizenSamlRoutes(prefix: string) {
+    if (!citizenSamlConfigured()) return;
+
+    const origin = primaryOrigin();
+    const successRedirect = SAML_CITIZEN_SUCCESS_REDIRECT || `${origin}/dashboard`;
+    const failureRedirect = SAML_CITIZEN_FAILURE_REDIRECT || `${origin}/`;
+
+    // Start login: redirect the browser to OneGate.
+    this.app.get(`${prefix}/saml/citizen/login`, (req, res, next) => {
+      passport.authenticate('saml-citizen', { session: false, failureRedirect })(req, res, next);
+    });
+
+    // OneGate posts the SAMLResponse back here.
+    this.app.post(
+      `${prefix}/saml/citizen/login/callback`,
+      express.urlencoded({ extended: false }),
+      (req, res, next) => {
+        passport.authenticate('saml-citizen', { session: false }, (err: unknown, user: SessionUser | false, info: { message?: string } | undefined) => {
+          if (err) {
+            logger.error(`Citizen SAML callback error: ${(err as Error).message ?? err}`);
+            return res.redirect(`${failureRedirect}?error=AUTH_FAILED`);
+          }
+          if (!user) {
+            return res.redirect(`${failureRedirect}?error=${info?.message ?? 'NO_USER'}`);
+          }
+          req.session.user = user;
+          req.session.save(saveErr => {
+            if (saveErr) {
+              logger.error(`Could not save citizen session: ${saveErr.message}`);
+              return res.redirect(`${failureRedirect}?error=SESSION_ERROR`);
+            }
+            return res.redirect(successRedirect);
+          });
+        })(req, res, next);
+      },
+    );
+
+    // SP metadata for the citizen federation (attach to the POB-ärende).
+    this.app.get(`${prefix}/saml/citizen/metadata`, (_req, res) => {
+      try {
+        const strategy = (passport as any)._strategy('saml-citizen') as {
+          generateServiceProviderMetadata: (decryptionCert: string | null, signingCert: string | null) => string;
+        };
+        const metadata = strategy.generateServiceProviderMetadata(null, null);
+        res.type('application/xml').send(metadata);
+      } catch (e) {
+        logger.error(`Could not generate citizen SP metadata: ${(e as Error).message}`);
         res.status(501).json({ message: 'METADATA_UNAVAILABLE' });
       }
     });

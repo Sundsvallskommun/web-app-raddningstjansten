@@ -47,12 +47,30 @@ const HINT_MESSAGES: Record<string, string> = {
 export function CitizenLoginPage() {
   const navigate = useNavigate();
   const { refresh } = useAuth();
+  const [mode, setMode] = useState<'saml' | 'mock'>('mock');
   const [open, setOpen] = useState(false);
   const [persons, setPersons] = useState<PersonOption[]>([]);
   const [personIndex, setPersonIndex] = useState<number | null>(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'signing'>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  // Decide which login UI to show: real OneGate BankID (redirect) or the mock dialog.
+  useEffect(() => {
+    apiService
+      .get<{ mode: 'saml' | 'mock' }>('/citizen/login/config')
+      .then(({ data }) => setMode(data.mode))
+      .catch(() => setMode('mock'));
+  }, []);
+
+  function startBankId() {
+    if (mode === 'saml') {
+      // Full-page redirect to the BFF, which hands off to OneGate (same as admin SAML).
+      window.location.href = '/api/saml/citizen/login';
+      return;
+    }
+    openDialog();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -133,7 +151,7 @@ export function CitizenLoginPage() {
             <Typography color="text.secondary" textAlign="center">
               Logga in som medborgare med BankID.
             </Typography>
-            <Button variant="contained" size="large" onClick={openDialog} fullWidth>
+            <Button variant="contained" size="large" onClick={startBankId} fullWidth>
               Logga in med BankID
             </Button>
           </Stack>
