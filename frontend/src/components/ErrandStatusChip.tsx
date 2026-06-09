@@ -34,14 +34,30 @@ const CITIZEN_STATUS_REMAP: Record<string, string> = {
   UNDER_MANUAL_REVIEW: "ONGOING",
 };
 
+// For a handläggare, an errand still awaiting pickup (no assignee) reads as "Ny"
+// rather than its internal handling status. Status-based + assignment-aware.
+const ADMIN_NEW_WHEN_UNASSIGNED = new Set(["UNDER_MANUAL_REVIEW"]);
+
 /** Small status chip for an errand with Swedish labels. */
 export function ErrandStatusChip({
   status,
   audience = "admin",
+  assigned,
 }: {
   status?: string;
   audience?: "citizen" | "admin";
+  /** Whether a handläggare is assigned (admin view only). */
+  assigned?: boolean;
 }) {
+  if (
+    audience === "admin" &&
+    assigned === false &&
+    status &&
+    ADMIN_NEW_WHEN_UNASSIGNED.has(status)
+  ) {
+    return <Chip label='Ny' size='small' color='info' variant='outlined' />;
+  }
+
   const effective =
     audience === "citizen" && status
       ? (CITIZEN_STATUS_REMAP[status] ?? status)

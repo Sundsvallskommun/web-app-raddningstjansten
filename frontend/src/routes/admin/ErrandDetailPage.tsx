@@ -198,7 +198,10 @@ export function ErrandDetailPage() {
                   sx={{ mb: 1 }}
                 >
                   <Typography variant='h5'>{data.errand.title}</Typography>
-                  <ErrandStatusChip status={data.errand.status} />
+                  <ErrandStatusChip
+                    status={data.errand.status}
+                    assigned={!!data.errand.assignedUserId}
+                  />
                 </Stack>
 
                 {showOutcome && outcome && (

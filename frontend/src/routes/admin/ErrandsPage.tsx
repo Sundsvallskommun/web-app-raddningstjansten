@@ -90,7 +90,7 @@ export function AdminErrandsPage() {
                       </TableCell>
                       <TableCell>{e.title}</TableCell>
                       <TableCell>
-                        <ErrandStatusChip status={e.status} />
+                        <ErrandStatusChip status={e.status} assigned={!!e.assignedUserId} />
                       </TableCell>
                       <TableCell>{e.applicantEmail ?? '—'}</TableCell>
                       <TableCell>{fmtDate(e.created)}</TableCell>
