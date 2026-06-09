@@ -205,3 +205,6 @@ export const egensotningValidityWarningDays = (): number => {
   const n = Number(process.env.EGENSOTNING_VALIDITY_WARNING_DAYS);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 30;
 };
+
+/** Session lifetime: 20 minutes. Renewed via POST /session/keepalive ("stanna kvar"). */
+export const SESSION_MAX_AGE_MS = 20 * 60 * 1000;

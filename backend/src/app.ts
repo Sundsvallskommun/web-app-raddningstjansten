@@ -24,6 +24,7 @@ import {
   SAML_FAILURE_REDIRECT,
   SAML_SUCCESS_REDIRECT,
   SECRET_KEY,
+  SESSION_MAX_AGE_MS,
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { SessionUser } from '@interfaces/user.interface';
@@ -88,7 +89,7 @@ class App {
           httpOnly: true,
           sameSite: 'lax',
           secure: this.env === 'production',
-          maxAge: 4 * 24 * 60 * 60 * 1000, // 4 days
+          maxAge: SESSION_MAX_AGE_MS, // 20 min; renewed via /session/keepalive
         },
       }),
     );

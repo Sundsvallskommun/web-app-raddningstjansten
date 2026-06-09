@@ -20,6 +20,7 @@ import { ReactElement, useState } from "react";
 import { ProfileDialog } from "./ProfileDialog";
 import { NavDrawer } from "./NavDrawer";
 import { Footer } from "./Footer";
+import { SessionTimeout } from "./SessionTimeout";
 import Logo from "@/assets/logo-red.svg?react";
 import { CONTENT_MAX_WIDTH } from "@/theme";
 
@@ -136,6 +137,7 @@ export const Wrapper = ({
         open={open}
         user={user}
       />
+      <SessionTimeout />
     </Box>
   );
 };

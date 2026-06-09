@@ -1,6 +1,7 @@
-import { Controller, Get, Req, UseBefore } from "routing-controllers";
-import { Request } from "express";
+import { Controller, Get, Post, Req, Res, UseBefore } from "routing-controllers";
+import { Request, Response } from "express";
 
+import { SESSION_MAX_AGE_MS } from "@config";
 import authMiddleware from "@middlewares/auth.middleware";
 import { CitizenService } from "@services/citizen.service";
 import { EmployeeService } from "@services/employee.service";
@@ -11,6 +12,8 @@ import { logger } from "@utils/logger";
 interface MeResponse {
   type: string;
   name: string;
+  /** When the session expires (ISO) — drives the client-side timeout warning. */
+  sessionExpiresAt?: string;
   maskedPersonNumber?: string;
   // Admin (SAML / Test SSO) fields
   username?: string;
@@ -41,6 +44,9 @@ export class MeController {
   @UseBefore(authMiddleware)
   async getMe(@Req() req: Request): Promise<MeResponse> {
     const user = req.session.user!;
+    const sessionExpiresAt = req.session.cookie.expires
+      ? new Date(req.session.cookie.expires).toISOString()
+      : undefined;
 
     // Admin: SAML identity + full Employee 2.0 record for the login name.
     if (user.type === "admin") {
@@ -60,6 +66,7 @@ export class MeController {
       return {
         type: user.type,
         name: employee?.fullname || user.name,
+        sessionExpiresAt,
         username: user.username,
         email: employee?.email ?? user.email,
         groups: user.groups,
@@ -98,8 +105,24 @@ export class MeController {
     return {
       type: user.type,
       name: citizenName || user.name,
+      sessionExpiresAt,
       maskedPersonNumber: maskPersonNumber(user.personNumber),
       citizen,
     };
+  }
+
+  /**
+   * "Stanna kvar" — renew the session for another full lifetime and return the new
+   * expiry. Modifying cookie.maxAge re-issues the Set-Cookie with a fresh window.
+   */
+  @Post("/session/keepalive")
+  @UseBefore(authMiddleware)
+  keepalive(@Req() req: Request, @Res() res: Response) {
+    req.session.cookie.maxAge = SESSION_MAX_AGE_MS;
+    return new Promise<Response>(resolve => {
+      req.session.save(() =>
+        resolve(res.json({ sessionExpiresAt: req.session.cookie.expires })),
+      );
+    });
   }
 }

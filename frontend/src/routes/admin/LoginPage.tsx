@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import {
   Alert,
@@ -59,7 +59,7 @@ const ROLE_LABEL: Record<TestSsoUser["role"], string> = {
 export function AdminLoginPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { refresh } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const error = params.get("error");
 
   const [testSsoEnabled, setTestSsoEnabled] = useState(false);
@@ -120,6 +120,23 @@ export function AdminLoginPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Already authenticated → go to the right dashboard instead of showing login.
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  if (user) {
+    return (
+      <Navigate
+        to={user.type === "admin" ? "/admin/dashboard" : "/dashboard"}
+        replace
+      />
+    );
   }
 
   return (

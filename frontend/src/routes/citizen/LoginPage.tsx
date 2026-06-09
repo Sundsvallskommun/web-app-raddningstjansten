@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Alert,
@@ -51,7 +51,7 @@ const HINT_MESSAGES: Record<string, string> = {
  */
 export function CitizenLoginPage() {
   const navigate = useNavigate();
-  const { refresh } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const [mode, setMode] = useState<"saml" | "mock">("mock");
   const [open, setOpen] = useState(false);
   const [persons, setPersons] = useState<PersonOption[]>([]);
@@ -156,6 +156,23 @@ export function CitizenLoginPage() {
   }
 
   const busy = status === "loading" || status === "signing";
+
+  // Already authenticated → go to the right dashboard instead of showing login.
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  if (user) {
+    return (
+      <Navigate
+        to={user.type === "admin" ? "/admin/dashboard" : "/dashboard"}
+        replace
+      />
+    );
+  }
 
   return (
     <Container

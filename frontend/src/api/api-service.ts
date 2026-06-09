@@ -46,6 +46,8 @@ export interface PortalPersonData {
 export interface Me {
   type: 'citizen' | 'admin';
   name: string;
+  /** When the session expires (ISO) — drives the inactivity-warning snackbar. */
+  sessionExpiresAt?: string;
   maskedPersonNumber?: string;
   // Admin (SAML / Test SSO) fields
   username?: string;
@@ -61,6 +63,12 @@ export interface Me {
 
 export async function fetchMe(): Promise<Me> {
   const { data } = await apiService.get<Me>('/me');
+  return data;
+}
+
+/** Renew the session ("stanna kvar"); returns the new expiry (ISO). */
+export async function sessionKeepAlive(): Promise<{ sessionExpiresAt?: string }> {
+  const { data } = await apiService.post<{ sessionExpiresAt?: string }>('/session/keepalive');
   return data;
 }
 
