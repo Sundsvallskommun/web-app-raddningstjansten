@@ -11,6 +11,7 @@ import passport from 'passport';
 import { useExpressServer } from 'routing-controllers';
 
 import {
+  appMode,
   BASE_URL_PREFIX,
   CREDENTIALS,
   citizenSamlConfigured,
@@ -51,7 +52,7 @@ class App {
   public listen() {
     this.app.listen(this.port, () => {
       logger.info('=================================');
-      logger.info(`======= ENV: ${this.env} =======`);
+      logger.info(`======= ENV: ${this.env} | MODE: ${appMode()} =======`);
       logger.info(`🚀 BFF listening on port ${this.port}`);
       logger.info('=================================');
     });

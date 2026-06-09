@@ -1,6 +1,6 @@
 import App from '@/app';
 import validateEnv from '@utils/validateEnv';
-import { initTestSso } from '@services/test-user.service';
+import { seedMocks } from '@services/mock-seed.service';
 import { HealthController } from '@controllers/health.controller';
 import { CitizenAuthController } from '@controllers/citizen-auth.controller';
 import { AdminAuthController } from '@controllers/admin-auth.controller';
@@ -27,7 +27,7 @@ const app = new App([
   ErrandController,
 ]);
 
-// Seed the Test-SSO user store in the background; never block boot on the DB.
-void initTestSso();
+// Seed the citizen/employee mocks in the background; never block boot.
+void seedMocks();
 
 app.listen();

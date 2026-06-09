@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { Body, Controller, Get, Post, Req, Res } from 'routing-controllers';
 import { Request, Response } from 'express';
 
-import { citizenAuthMode, CITIZEN_LOGIN_PASSWORD, CITIZEN_PERSONS, CitizenPerson } from '@config';
+import { citizenAuthMode, citizenMockEnabled, CITIZEN_LOGIN_PASSWORD, CITIZEN_PERSONS, CitizenPerson } from '@config';
+import { CitizenService } from '@services/citizen.service';
 import { logger } from '@utils/logger';
 
 /**
@@ -24,11 +25,10 @@ const MOCK_SIGN_DURATION_MS = 1500;
 // orderRef -> the chosen person + when the order started. In-memory; fine for a single-instance POC.
 const pendingOrders = new Map<string, { startedAt: number; person: CitizenPerson }>();
 
-/** Short, non-sensitive label for the login picker (first 8 chars of the personId). */
-const personLabel = (personId: string) => personId.slice(0, 8);
-
 @Controller()
 export class CitizenAuthController {
+  private readonly citizenService = new CitizenService();
+
   /**
    * Tells the frontend which login UI to show: 'saml' → redirect to OneGate
    * BankID; 'mock' → the test-person picker dialog below.
@@ -38,11 +38,11 @@ export class CitizenAuthController {
     return res.json({ mode: citizenAuthMode() });
   }
 
-  /** Lists the selectable mock citizens (truncated personId only — no personnummer). */
+  /** Lists the selectable mock citizens (display name only — no personnummer). */
   @Get('/citizen/login/options')
   options(@Res() res: Response) {
     return res.json({
-      persons: CITIZEN_PERSONS.map((p, index) => ({ index, label: personLabel(p.personId) })),
+      persons: CITIZEN_PERSONS.map((p, index) => ({ index, label: p.name })),
     });
   }
 
@@ -73,7 +73,7 @@ export class CitizenAuthController {
   }
 
   @Post('/citizen/login/collect')
-  collect(@Body() body: { orderRef?: string }, @Req() req: Request, @Res() res: Response) {
+  async collect(@Body() body: { orderRef?: string }, @Req() req: Request, @Res() res: Response): Promise<Response> {
     const orderRef = body?.orderRef;
     const order = orderRef ? pendingOrders.get(orderRef) : undefined;
 
@@ -85,18 +85,32 @@ export class CitizenAuthController {
       return res.json({ orderRef, status: 'pending', hintCode: 'userSign' });
     }
 
+    // Resolve the personId. WSO2 mode has it from env; citizen-mock mode assigns
+    // it server-side, so look it up from the personnummer via the mock's guid.
+    let personId = order.person.personId;
+    if (!personId && citizenMockEnabled()) {
+      try {
+        personId = await this.citizenService.getPersonId(order.person.personNumber);
+      } catch (e) {
+        logger.error(`Citizen guid lookup failed for login: ${(e as Error).message}`);
+      }
+    }
+    if (!personId) {
+      return res.status(502).json({ status: 'failed', hintCode: 'lookupFailed' });
+    }
+
     // Complete: establish the citizen session. The display name is resolved from
-    // Citizen 3.0 at /me, so only a placeholder is stored here.
+    // Citizen data at /me, so only a placeholder is stored here.
     pendingOrders.delete(orderRef);
 
     req.session.user = {
       type: 'citizen',
-      personId: order.person.personId,
+      personId,
       name: 'Medborgare',
       personNumber: order.person.personNumber,
     };
 
-    logger.info(`Citizen login completed (mock) for personId ${order.person.personId}`);
+    logger.info(`Citizen login completed (mock) for personId ${personId}`);
 
     return res.json({
       orderRef,

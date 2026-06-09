@@ -26,19 +26,14 @@ export class AdminAuthController {
 
   /** Lists the selectable mock handläggare (no secrets — name + role only). */
   @Get('/admin/test-login/options')
-  async options(@Res() res: Response) {
+  options(@Res() res: Response) {
     if (!testSsoConfigured()) {
       return res.status(404).json({ message: 'TEST_SSO_DISABLED' });
     }
-    try {
-      const users = await listTestUsers();
-      return res.json({
-        users: users.map(u => ({ id: u.id, name: u.name, role: roleForGroups(u.groups) })),
-      });
-    } catch (e) {
-      logger.error(`Could not list Test-SSO users: ${(e as Error).message}`);
-      return res.status(503).json({ message: 'TEST_SSO_UNAVAILABLE' });
-    }
+    const users = listTestUsers();
+    return res.json({
+      users: users.map(u => ({ id: u.id, name: u.name, role: roleForGroups(u.groups) })),
+    });
   }
 
   /** Logs in as the chosen mock handläggare, gated by the shared password. */
@@ -55,7 +50,7 @@ export class AdminAuthController {
       return res.status(401).json({ status: 'failed', hintCode: 'wrongPassword' });
     }
 
-    const user = typeof body?.userId === 'number' ? await getTestUser(body.userId).catch(() => null) : null;
+    const user = typeof body?.userId === 'number' ? getTestUser(body.userId) : null;
     if (!user) {
       return res.status(400).json({ status: 'failed', hintCode: 'noUser' });
     }

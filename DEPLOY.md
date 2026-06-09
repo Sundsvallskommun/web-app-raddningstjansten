@@ -6,10 +6,10 @@ Två separata Dokploy-**Applications** byggs ur det här mono-repot:
 | ------------- | ----------- | --------------------- | -------------- |
 | `backend`     | `backend`   | `backend/Dockerfile`  | `3000`         |
 | `frontend`    | `frontend`  | `frontend/Dockerfile` | `80`           |
-| `testsso-db`  | –           | `mysql:8` (image)     | `3306`         |
 
-> `testsso-db` behövs bara om **Test SSO** (mockade handläggare) ska vara på. Utan
-> `EMPLOYEE_LOGIN_PASSWORD`/`TESTSSO_DATABASE_URL` är knappen dold och DB:n onödig.
+> **Test SSO** behöver ingen databas längre — de tre handläggarna är definierade i
+> kod och seedas in i employee-mocken vid uppstart. Citizen/Employee-mockarna är
+> egna api-team-tjänster (anges via `*_MOCK_BASE_URL`), inte byggda härifrån.
 
 ## Arkitektur i drift
 
@@ -27,6 +27,48 @@ Browser ──https──▶ Traefik ──▶ frontend (nginx :80)
 
 Backend exponeras alltså **inte** publikt (nås bara via frontendens `/api`-proxy
 på Dokploys interna nätverk).
+
+## Lägen (`APP_MODE`)
+
+En enda variabel, `APP_MODE`, sätter förvalen för hela stacken. Att gå från demo
+till produktion är alltså ett env-byte + omdeploy — ingen kodändring. De
+per-concern-variablerna nedan är *data* (URL:er, cert); `APP_MODE` avgör vilken
+väg som används.
+
+| Concern | `demo` (utanför VPN) | `ad` (inom AD/VPN) | `prod` |
+| --- | --- | --- | --- |
+| Handläggar-login | Test SSO + fake-idp | fake-idp SAML (+ Test SSO) | riktig IdP (OneGate) SAML |
+| Handläggar-data | employee-mock | WSO2 Employee | WSO2 Employee |
+| Medborgar-login | mock-BankID | mock-BankID | OneGate **riktig BankID** |
+| Medborgar-data | citizen-mock | WSO2 Citizen | WSO2 Citizen |
+| Mock-seedning vid start | ja | nej | nej |
+| Test SSO-knapp | på | på | **av** (tvingat) |
+
+Vad varje läge förväntar sig i env (utöver bas-variablerna):
+
+```
+# demo — lokal/POC utan VPN
+APP_MODE=demo
+CITIZEN_MOCK_BASE_URL=http://<rtj-citizen>      EMPLOYEE_MOCK_BASE_URL=http://<rtj-employee>
+EMPLOYEE_LOGIN_PASSWORD=<delat>                 EMPLOYEE_PERSON_NUMBER=<pnr1,pnr2,pnr3>
+
+# ad — inom kommunnät/VPN, riktiga test-API:er
+APP_MODE=ad
+# mock-URL:erna ignoreras (kan lämnas kvar); Citizen/Employee går mot API_BASE_URL (WSO2)
+CITIZEN_PERSON_ID=<uuid1,uuid2>                 CITIZEN_PERSON_NUMBER=<pnr1,pnr2>
+SAML_ENTRY_SSO=<fejk-idp>/sso                   EMPLOYEE_LOGIN_PASSWORD=<delat>   # Test SSO valfritt
+
+# prod — skarp drift
+APP_MODE=prod
+# Test SSO av automatiskt; medborgarlogin → OneGate BankID
+CITIZEN_AUTH_MODE=saml                          SAML_CITIZEN_*=<OneGate-federation, se docs/BANKID-ONEGATE.md>
+SAML_ENTRY_SSO=<riktig IdP>/sso                 # admin mot riktig IdP i stället för fejk-idp
+```
+
+> `APP_MODE` byter aldrig `SAML_ENTRY_SSO`/`API_BASE_URL` åt dig — peka dem på
+> fejk-idp/test-WSO2 i demo/ad och på de skarpa motsvarigheterna i prod.
+> Templating (beslut-PDF) och legalentity (engagemang) saknar mock och går alltid
+> mot WSO2; i `demo` utan VPN degraderar de tyst (beslut-PDF renderas inte).
 
 ## 1. Skapa backend-servicen
 
@@ -67,9 +109,12 @@ på Dokploys interna nätverk).
    # Editor (full) grupper + read-only viewer-grupp
    ADMIN_GROUP=Raddningstjansten-AVD-CHEFER,Raddningstjansten-AVD-EDITOR
    VIEWER_GROUP=Raddningstjansten-AVD-VIEWER
-   # Test SSO (valfritt – mockade handläggare). Tom = avstängt.
+   # Test SSO (valfritt – 3 mockade handläggare i kod). Tom = avstängt.
    EMPLOYEE_LOGIN_PASSWORD=<delat lösenord>
-   TESTSSO_DATABASE_URL=mysql://testsso:<pw>@<testsso-db-appnamn>:3306/testsso
+   EMPLOYEE_PERSON_NUMBER=<pnr1>,<pnr2>,<pnr3>   # endast för att seeda employee-mocken
+   # Citizen/Employee-mockar (api-team-tjänster, utan WSO2/VPN). Tom = WSO2-gatewayen.
+   CITIZEN_MOCK_BASE_URL=http://<rtj-citizen-appnamn>
+   EMPLOYEE_MOCK_BASE_URL=http://<rtj-employee-appnamn>
    ```
 
    > Ingen publik domän behövs för backend. Notera **service-namnet** (t.ex.
@@ -77,19 +122,16 @@ på Dokploys interna nätverk).
 
 5. **Deploy.**
 
-### Test-SSO-databasen (valfri)
+### Citizen/Employee-mockar (VPN-fritt)
 
-Vill du erbjuda "Logga in med Test SSO" (tre mockade handläggare: admin/editor/
-viewer) behövs en MySQL-tjänst. Backenden skapar tabellen och seedar de tre
-användarna vid uppstart; de loggar in med det delade `EMPLOYEE_LOGIN_PASSWORD`.
-
-1. Dokploy → **Create Service → Database → MySQL** (eller en Application med image
-   `mysql:8`). Sätt `MYSQL_DATABASE=testsso`, `MYSQL_USER=testsso`,
-   `MYSQL_PASSWORD=<pw>`, `MYSQL_ROOT_PASSWORD=<pw>`. Lägg en volym på
-   `/var/lib/mysql` så datan överlever omdeploy.
-2. Peka backendens `TESTSSO_DATABASE_URL` på tjänstens **genererade app-namn**
-   (samma slag av internt värdnamn som `BACKEND_URL`), port `3306`.
-3. Ingen publik domän behövs – bara samma interna nätverk som backend.
+api-teamet driver två fristående mock-tjänster i Dokploy (`api-service-citizen`,
+`api-service-employee`) som speglar Citizen/Employee utan WSO2-token. Sätt
+`CITIZEN_MOCK_BASE_URL` / `EMPLOYEE_MOCK_BASE_URL` till deras interna app-namn så
+slipper POC:en VPN för medborgar-/handläggardata. Vid uppstart **seedar** backenden
+(idempotent) test-medborgare med giltiga Sundsvalls-/Timrå-adresser + de tre
+Test-SSO-handläggarna. Lämnas URL:erna tomma används riktiga WSO2-gatewayen (kräver
+VPN). Templating (beslut-PDF) och legalentity (engagemang) saknar mock och går
+fortfarande via WSO2.
 
 ## 2. Skapa frontend-servicen
 

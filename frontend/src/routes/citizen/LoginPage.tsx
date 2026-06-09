@@ -279,7 +279,7 @@ export function CitizenLoginPage() {
                           key={p.index}
                           value={p.index}
                           control={<Radio />}
-                          label={`${p.label}…`}
+                          label={p.label}
                           disabled={busy}
                         />
                       ))}

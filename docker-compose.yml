@@ -7,6 +7,8 @@ services:
       - "${BACKEND_PORT:-3001}:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
+      # demo (mocks, off-VPN) | ad (WSO2 + fake-idp) | prod (WSO2 + OneGate BankID)
+      APP_MODE: ${APP_MODE:-demo}
       PORT: 3000
       BASE_URL_PREFIX: ${BASE_URL_PREFIX:-/api}
       SECRET_KEY: ${SECRET_KEY:?err}
@@ -32,37 +34,18 @@ services:
       # Editor (full) groups + the read-only viewer group.
       ADMIN_GROUP: ${ADMIN_GROUP:-Raddningstjansten-AVD-CHEFER,Raddningstjansten-AVD-EDITOR}
       VIEWER_GROUP: ${VIEWER_GROUP:-Raddningstjansten-AVD-VIEWER}
-      # Test SSO (mocked handläggare). Empty values keep it disabled.
+      # Test SSO (mocked handläggare, defined in code). Empty password disables it.
       EMPLOYEE_LOGIN_PASSWORD: ${EMPLOYEE_LOGIN_PASSWORD:-}
-      TESTSSO_DATABASE_URL: ${TESTSSO_DATABASE_URL:-mysql://testsso:testsso@testsso-db:3306/testsso}
+      EMPLOYEE_PERSON_NUMBER: ${EMPLOYEE_PERSON_NUMBER:-}
+      # Standalone Citizen/Employee mocks (no WSO2, off-VPN). Empty = use the gateway.
+      CITIZEN_MOCK_BASE_URL: ${CITIZEN_MOCK_BASE_URL:-}
+      EMPLOYEE_MOCK_BASE_URL: ${EMPLOYEE_MOCK_BASE_URL:-}
       # rtj-management errand API (no WSO2 token)
       RTJ_MANAGEMENT_BASE_URL: ${RTJ_MANAGEMENT_BASE_URL:?err}
       RTJ_NAMESPACE: ${RTJ_NAMESPACE:-EGENSOTNING}
       RTJ_DEFAULT_ASSIGNEE: ${RTJ_DEFAULT_ASSIGNEE:-bsk-handlaggare}
       RTJ_PROCESS_DEFINITION: ${RTJ_PROCESS_DEFINITION:-Hantera ansökan om egensotning}
       EGENSOTNING_VALIDITY_WARNING_DAYS: ${EGENSOTNING_VALIDITY_WARNING_DAYS:-30}
-    depends_on:
-      - testsso-db
-    networks:
-      - raddningstjansten
-
-  # Test-SSO user store (the "users-database" Dokploy service). Holds the three
-  # seeded mock handläggare; the backend creates the table + seeds on startup.
-  testsso-db:
-    image: mysql:8
-    container_name: raddningstjansten-testsso-db
-    # Publish 3306 to the host so a locally-run backend (yarn dev) can connect
-    # via localhost. In-cluster (compose/Dokploy) the backend uses the service
-    # name "testsso-db" instead and doesn't need the published port.
-    ports:
-      - "${TESTSSO_DB_PORT:-3306}:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${TESTSSO_DB_ROOT_PASSWORD:-rootpw}
-      MYSQL_DATABASE: ${TESTSSO_DB_NAME:-testsso}
-      MYSQL_USER: ${TESTSSO_DB_USER:-testsso}
-      MYSQL_PASSWORD: ${TESTSSO_DB_PASSWORD:-testsso}
-    volumes:
-      - testsso-db-data:/var/lib/mysql
     networks:
       - raddningstjansten
 
@@ -79,9 +62,6 @@ services:
       - backend
     networks:
       - raddningstjansten
-
-volumes:
-  testsso-db-data:
 
 networks:
   raddningstjansten:
