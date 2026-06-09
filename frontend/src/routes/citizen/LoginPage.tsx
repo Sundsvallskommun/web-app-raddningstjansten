@@ -152,13 +152,13 @@ export function CitizenLoginPage() {
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center", mt: 8, px: 2 }}>
-      <Card variant='outlined' sx={{ maxWidth: 420, width: "100%" }}>
+      <Card variant='outlined' sx={{ maxWidth: 560, width: "100%", px: 2 }}>
         <CardContent>
           <Stack spacing={2} alignItems='center'>
             <Box sx={{ color: "primary.main" }}>
               <Logo />
             </Box>
-            <Typography variant='h5'>Räddningstjänsten</Typography>
+            <Typography variant='h5'>Räddningstjänsten - Mina Sidor</Typography>
             <Typography color='text.secondary' textAlign='center'>
               Logga in som medborgare med BankID.
             </Typography>

@@ -35,13 +35,15 @@ export function AdminLoginPage() {
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center", mt: 8, px: 2 }}>
-      <Card variant='outlined' sx={{ maxWidth: 420, width: "100%" }}>
+      <Card variant='outlined' sx={{ display: "flex", p: 2 }}>
         <CardContent>
           <Stack spacing={2} alignItems='center'>
             <Box sx={{ color: "secondary.main" }}>
               <Logo />
             </Box>
-            <Typography variant='h5'>Administration</Typography>
+            <Typography variant='h5'>
+              Räddningstjänsten - Administration
+            </Typography>
             <Typography color='text.secondary' textAlign='center'>
               Logga in med ditt organisationskonto.
             </Typography>
@@ -51,10 +53,25 @@ export function AdminLoginPage() {
                 {ERROR_MESSAGES[error] ?? "Inloggningen kunde inte slutföras."}
               </Alert>
             )}
-
-            <Button variant='contained' size='large' onClick={login} fullWidth>
-              Logga in med AD
-            </Button>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <Button
+                variant='contained'
+                size='large'
+                onClick={login}
+                fullWidth
+              >
+                {"Logga in med AD - Sundsvall SSO"}
+              </Button>
+              <Button
+                color='secondary'
+                variant='contained'
+                size='large'
+                onClick={login}
+                fullWidth
+              >
+                {"Logga in med Test SSO"}
+              </Button>
+            </Box>
           </Stack>
         </CardContent>
       </Card>

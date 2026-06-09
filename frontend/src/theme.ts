@@ -22,8 +22,8 @@ export const CONTENT_MAX_WIDTH = 1080;
 export const theme = createTheme({
   palette: {
     mode: "light",
-    primary: { main: "#df0033", contrastText: "#ffffff" }, // brand red (buttons, links, citizen app-bar)
-    secondary: { main: "#520000", contrastText: "#ffffff" }, // deep maroon (dark sections, admin app-bar)
+    primary: { main: "#194c86", contrastText: "#ffffff" }, // brand red (buttons, links, citizen app-bar)
+    secondary: { main: "#2d6674", contrastText: "#ffffff" }, // deep maroon (dark sections, admin app-bar)
     background: { default: "#f1ebe5", paper: "#ffffff" }, // warm cream page, white cards
     text: { primary: "#3b3b3b" },
   },
