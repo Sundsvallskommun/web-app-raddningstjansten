@@ -1,6 +1,14 @@
 export type UserType = 'citizen' | 'admin';
 
 /**
+ * Authorization role for an admin (handläggare). Derived from the AD groups:
+ * CHEFER/EDITOR groups grant 'editor' (full read+write), the VIEWER group grants
+ * 'viewer' (read-only). The same mapping applies to real SAML logins and the
+ * mocked Test-SSO logins.
+ */
+export type AdminRole = 'editor' | 'viewer';
+
+/**
  * The shape we store in the session after login.
  *
  * Citizen (BankID mock): personId + personNumber.
@@ -23,4 +31,6 @@ export interface SessionUser {
   email?: string;
   groups?: string[];
   citizenIdentifier?: string;
+  // Admin authorization role derived from groups (editor = write, viewer = read-only).
+  role?: AdminRole;
 }

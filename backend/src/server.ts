@@ -1,7 +1,9 @@
 import App from '@/app';
 import validateEnv from '@utils/validateEnv';
+import { initTestSso } from '@services/test-user.service';
 import { HealthController } from '@controllers/health.controller';
 import { CitizenAuthController } from '@controllers/citizen-auth.controller';
+import { AdminAuthController } from '@controllers/admin-auth.controller';
 import { MeController } from '@controllers/me.controller';
 import { EngagementController } from '@controllers/engagement.controller';
 import { ErrandController } from '@controllers/errand.controller';
@@ -19,9 +21,13 @@ validateEnv();
 const app = new App([
   HealthController,
   CitizenAuthController,
+  AdminAuthController,
   MeController,
   EngagementController,
   ErrandController,
 ]);
+
+// Seed the Test-SSO user store in the background; never block boot on the DB.
+void initTestSso();
 
 app.listen();

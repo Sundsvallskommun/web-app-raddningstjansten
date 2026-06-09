@@ -12,10 +12,11 @@ interface MeResponse {
   type: string;
   name: string;
   maskedPersonNumber?: string;
-  // Admin (SAML) fields
+  // Admin (SAML / Test SSO) fields
   username?: string;
   email?: string;
   groups?: string[];
+  role?: "editor" | "viewer";
   // Admin: full employee record from Employee 2.0
   employee?: PortalPersonData | null;
   // Citizen (Citizen 3.0) fields
@@ -62,6 +63,7 @@ export class MeController {
         username: user.username,
         email: employee?.email ?? user.email,
         groups: user.groups,
+        role: user.role,
         maskedPersonNumber: maskPersonNumber(user.citizenIdentifier),
         employee,
         citizen: null,

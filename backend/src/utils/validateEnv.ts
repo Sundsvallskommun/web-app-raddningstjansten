@@ -34,7 +34,13 @@ const validateEnv = () => {
     SAML_FAILURE_REDIRECT: url(),
     SAML_ISSUER: str(),
     SAML_IDP_PUBLIC_CERT: str(),
+    // Admin (editor) groups; viewer group is optional (read-only access).
     ADMIN_GROUP: str(),
+    VIEWER_GROUP: str({ default: '' }),
+    // Test SSO (mocked handläggare logins against a seeded MySQL user store).
+    // Optional: empty values keep Test SSO disabled.
+    EMPLOYEE_LOGIN_PASSWORD: str({ default: '' }),
+    TESTSSO_DATABASE_URL: str({ default: '' }),
     // rtj-management errand API (separate service, no WSO2 token)
     RTJ_MANAGEMENT_BASE_URL: url(),
   });

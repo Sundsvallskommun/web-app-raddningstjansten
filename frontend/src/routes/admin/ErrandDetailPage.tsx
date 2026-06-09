@@ -100,6 +100,8 @@ export function ErrandDetailPage() {
     }
   }
 
+  // Viewers (Raddningstjansten-AVD-VIEWER) get read-only access: no assign/decide.
+  const readOnly = user?.role === "viewer";
   const assignedToMe =
     !!data?.errand.assignedUserId &&
     data.errand.assignedUserId === user?.username;
@@ -226,24 +228,30 @@ export function ErrandDetailPage() {
                         {actionMsg}
                       </Alert>
                     )}
-                    <Stack direction='row' spacing={2}>
-                      <Button
-                        variant='contained'
-                        color='success'
-                        startIcon={<CheckCircleOutline />}
-                        onClick={() => setDecisionApproved(true)}
-                      >
-                        Godkänn
-                      </Button>
-                      <Button
-                        variant='outlined'
-                        color='error'
-                        startIcon={<CancelOutlined />}
-                        onClick={() => setDecisionApproved(false)}
-                      >
-                        Avslå
-                      </Button>
-                    </Stack>
+                    {readOnly ? (
+                      <Alert severity='info'>
+                        Du har endast läsbehörighet och kan inte fatta beslut.
+                      </Alert>
+                    ) : (
+                      <Stack direction='row' spacing={2}>
+                        <Button
+                          variant='contained'
+                          color='success'
+                          startIcon={<CheckCircleOutline />}
+                          onClick={() => setDecisionApproved(true)}
+                        >
+                          Godkänn
+                        </Button>
+                        <Button
+                          variant='outlined'
+                          color='error'
+                          startIcon={<CancelOutlined />}
+                          onClick={() => setDecisionApproved(false)}
+                        >
+                          Avslå
+                        </Button>
+                      </Stack>
+                    )}
                   </>
                 )}
               </Paper>
@@ -403,7 +411,7 @@ export function ErrandDetailPage() {
                       : data.errand.assignedUserId
                   }
                 />
-                {!assignedToMe && !isDecided && (
+                {!assignedToMe && !isDecided && !readOnly && (
                   <Button
                     variant='contained'
                     color='secondary'

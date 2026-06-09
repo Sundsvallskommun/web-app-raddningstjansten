@@ -2,10 +2,14 @@
 
 Två separata Dokploy-**Applications** byggs ur det här mono-repot:
 
-| Service    | Context     | Dockerfile            | Container-port |
-| ---------- | ----------- | --------------------- | -------------- |
-| `backend`  | `backend`   | `backend/Dockerfile`  | `3000`         |
-| `frontend` | `frontend`  | `frontend/Dockerfile` | `80`           |
+| Service       | Context     | Dockerfile            | Container-port |
+| ------------- | ----------- | --------------------- | -------------- |
+| `backend`     | `backend`   | `backend/Dockerfile`  | `3000`         |
+| `frontend`    | `frontend`  | `frontend/Dockerfile` | `80`           |
+| `testsso-db`  | –           | `mysql:8` (image)     | `3306`         |
+
+> `testsso-db` behövs bara om **Test SSO** (mockade handläggare) ska vara på. Utan
+> `EMPLOYEE_LOGIN_PASSWORD`/`TESTSSO_DATABASE_URL` är knappen dold och DB:n onödig.
 
 ## Arkitektur i drift
 
@@ -60,13 +64,32 @@ på Dokploys interna nätverk).
    SAML_FAILURE_REDIRECT=https://<frontend-domän>/admin
    SAML_ISSUER=web-app-raddningstjansten
    SAML_IDP_PUBLIC_CERT="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
-   ADMIN_GROUP=Raddningstjansten-AVD-CHEFER
+   # Editor (full) grupper + read-only viewer-grupp
+   ADMIN_GROUP=Raddningstjansten-AVD-CHEFER,Raddningstjansten-AVD-EDITOR
+   VIEWER_GROUP=Raddningstjansten-AVD-VIEWER
+   # Test SSO (valfritt – mockade handläggare). Tom = avstängt.
+   EMPLOYEE_LOGIN_PASSWORD=<delat lösenord>
+   TESTSSO_DATABASE_URL=mysql://testsso:<pw>@<testsso-db-appnamn>:3306/testsso
    ```
 
    > Ingen publik domän behövs för backend. Notera **service-namnet** (t.ex.
    > `raddningstjansten-backend`) – frontend använder det för intern proxy.
 
 5. **Deploy.**
+
+### Test-SSO-databasen (valfri)
+
+Vill du erbjuda "Logga in med Test SSO" (tre mockade handläggare: admin/editor/
+viewer) behövs en MySQL-tjänst. Backenden skapar tabellen och seedar de tre
+användarna vid uppstart; de loggar in med det delade `EMPLOYEE_LOGIN_PASSWORD`.
+
+1. Dokploy → **Create Service → Database → MySQL** (eller en Application med image
+   `mysql:8`). Sätt `MYSQL_DATABASE=testsso`, `MYSQL_USER=testsso`,
+   `MYSQL_PASSWORD=<pw>`, `MYSQL_ROOT_PASSWORD=<pw>`. Lägg en volym på
+   `/var/lib/mysql` så datan överlever omdeploy.
+2. Peka backendens `TESTSSO_DATABASE_URL` på tjänstens **genererade app-namn**
+   (samma slag av internt värdnamn som `BACKEND_URL`), port `3306`.
+3. Ingen publik domän behövs – bara samma interna nätverk som backend.
 
 ## 2. Skapa frontend-servicen
 
@@ -123,3 +146,6 @@ service. Pushar till andra brancher ignoreras (Dokploy bygger bara `main`).
   webbläsare, och dess `DESTINATION` måste vara exakt `SAML_CALLBACK_URL` ovan.
 - Byt `SECRET_KEY` till en riktig slumpsträng och lägg aldrig in skarpa
   `CLIENT_SECRET`/SAML-nycklar i git – bara i Dokploys env.
+- **Test SSO** är en POC-genväg (delat lösenord, mockade användare) – stäng av den
+  i skarp drift genom att lämna `EMPLOYEE_LOGIN_PASSWORD` tom. Behörighetsrollerna
+  (editor = skriv, viewer = läs) gäller även riktiga SAML-inloggningar via grupp.

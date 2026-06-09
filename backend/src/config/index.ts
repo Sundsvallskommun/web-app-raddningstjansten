@@ -43,8 +43,14 @@ export const {
   SAML_IDP_PUBLIC_CERT,
   SAML_PRIVATE_KEY,
   SAML_PUBLIC_KEY,
-  // Comma-separated allowlist of AD groups permitted to log in as admin
+  // Comma-separated AD groups with full admin (editor) access: write + read.
   ADMIN_GROUP,
+  // Comma-separated AD groups with read-only (viewer) access.
+  VIEWER_GROUP,
+  // Test SSO: shared password for the mocked handläggare logins, and the MySQL
+  // connection string for the seeded user store. Both empty disables Test SSO.
+  EMPLOYEE_LOGIN_PASSWORD,
+  TESTSSO_DATABASE_URL,
   // rtj-management (errand API, separate Dokploy service, no WSO2 token)
   RTJ_MANAGEMENT_BASE_URL,
   RTJ_NAMESPACE,
@@ -90,3 +96,11 @@ export const citizenSamlConfigured = (): boolean =>
  */
 export const citizenAuthMode = (): 'saml' | 'mock' =>
   (CITIZEN_AUTH_MODE ?? '').trim().toLowerCase() === 'saml' && citizenSamlConfigured() ? 'saml' : 'mock';
+
+/**
+ * True when the Test-SSO mock login is usable: a user-store connection string
+ * AND a shared password are both configured. Otherwise the admin login offers
+ * only the real SAML flow.
+ */
+export const testSsoConfigured = (): boolean =>
+  Boolean((TESTSSO_DATABASE_URL ?? '').trim() && (EMPLOYEE_LOGIN_PASSWORD ?? '').trim());

@@ -1,6 +1,7 @@
 import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import {
   ADMIN_GROUP,
+  VIEWER_GROUP,
   SAML_CALLBACK_URL,
   SAML_CITIZEN_CALLBACK_URL,
   SAML_CITIZEN_ENTRY_SSO,
@@ -13,7 +14,7 @@ import {
   SAML_LOGOUT_CALLBACK_URL,
   SAML_PRIVATE_KEY,
 } from '@config';
-import { SessionUser } from '@interfaces/user.interface';
+import { AdminRole, SessionUser } from '@interfaces/user.interface';
 import { CitizenService } from '@services/citizen.service';
 import { logger } from '@utils/logger';
 
@@ -38,13 +39,27 @@ export const parseGroups = (raw: unknown): string[] => {
   return list.map(g => String(g).trim()).filter(Boolean);
 };
 
-/** Groups (from .env ADMIN_GROUP, comma-separated) allowed to log in as admin. */
-const allowedAdminGroups = (): string[] => parseGroups(ADMIN_GROUP).map(normalizeGroup);
+/** Groups with full admin (editor) access — write + read (from ADMIN_GROUP). */
+const editorGroups = (): string[] => parseGroups(ADMIN_GROUP).map(normalizeGroup);
 
+/** Groups with read-only (viewer) access (from VIEWER_GROUP). */
+const viewerGroups = (): string[] => parseGroups(VIEWER_GROUP).map(normalizeGroup);
+
+/** A user may log in as admin if they belong to an editor OR a viewer group. */
 export const isAllowedAdmin = (groups: string[]): boolean => {
-  const allowed = allowedAdminGroups();
+  const allowed = [...editorGroups(), ...viewerGroups()];
   if (allowed.length === 0) return false;
   return groups.map(normalizeGroup).some(g => allowed.includes(g));
+};
+
+/**
+ * Map AD groups to an authorization role. Editor groups (CHEFER/EDITOR) win over
+ * the viewer group, so a user in both still gets full access. Defaults to
+ * 'viewer' (the safer, read-only role) when only a viewer group matches.
+ */
+export const roleForGroups = (groups: string[]): AdminRole => {
+  const normalized = groups.map(normalizeGroup);
+  return normalized.some(g => editorGroups().includes(g)) ? 'editor' : 'viewer';
 };
 
 export const samlConfig = {
@@ -96,9 +111,10 @@ export const createSamlStrategy = (): SamlStrategy =>
         email,
         groups,
         citizenIdentifier,
+        role: roleForGroups(groups),
       };
 
-      logger.info(`SAML login ok for ${username} (groups: ${groups.join(', ')})`);
+      logger.info(`SAML login ok for ${username} (groups: ${groups.join(', ')}, role: ${user.role})`);
       return done(null, user);
     }) as any,
     // logout verify

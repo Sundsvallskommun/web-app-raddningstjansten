@@ -17,6 +17,7 @@ import multer from 'multer';
 
 import authMiddleware from '@middlewares/auth.middleware';
 import adminMiddleware from '@middlewares/admin.middleware';
+import editorMiddleware from '@middlewares/editor.middleware';
 import { HttpException } from '@exceptions/HttpException';
 import { ErrandService } from '@services/errand.service';
 import { DecisionContext, TemplatingService } from '@services/templating.service';
@@ -435,7 +436,7 @@ export class ErrandController {
    * its handläggare can no longer be changed.
    */
   @Post('/admin/errands/:id/assign')
-  @UseBefore(authMiddleware, adminMiddleware)
+  @UseBefore(authMiddleware, adminMiddleware, editorMiddleware)
   async assignSelf(@Param('id') id: string, @Req() req: Request): Promise<{ status: string }> {
     const user = req.session.user!;
     const userId = user.username ?? '';
@@ -475,7 +476,7 @@ export class ErrandController {
   }
 
   @Put('/admin/errands/:id/notifications/acknowledged')
-  @UseBefore(authMiddleware, adminMiddleware)
+  @UseBefore(authMiddleware, adminMiddleware, editorMiddleware)
   async adminAck(@Param('id') id: string): Promise<{ status: string }> {
     await this.errandService.acknowledgeNotifications(id);
     return { status: 'ok' };
@@ -487,7 +488,7 @@ export class ErrandController {
    * which is rendered and stored as "Beslut-<nr>.pdf" on the errand.
    */
   @Post('/admin/errands/:id/decision')
-  @UseBefore(authMiddleware, adminMiddleware)
+  @UseBefore(authMiddleware, adminMiddleware, editorMiddleware)
   async adminDecision(
     @Param('id') id: string,
     @BodyParam('approved') approved: boolean,
@@ -525,7 +526,7 @@ export class ErrandController {
 
   /** Render the decision document as HTML for the confirmation dialog preview. */
   @Post('/admin/errands/:id/decision/preview')
-  @UseBefore(authMiddleware, adminMiddleware)
+  @UseBefore(authMiddleware, adminMiddleware, editorMiddleware)
   async decisionPreview(
     @Param('id') id: string,
     @BodyParam('approved') approved: boolean,

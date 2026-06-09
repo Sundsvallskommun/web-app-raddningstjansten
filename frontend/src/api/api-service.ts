@@ -47,10 +47,12 @@ export interface Me {
   type: 'citizen' | 'admin';
   name: string;
   maskedPersonNumber?: string;
-  // Admin (SAML) fields
+  // Admin (SAML / Test SSO) fields
   username?: string;
   email?: string;
   groups?: string[];
+  /** Authorization role: 'editor' (full) or 'viewer' (read-only). */
+  role?: 'editor' | 'viewer';
   // Admin: full employee record from Employee 2.0
   employee?: PortalPersonData | null;
   // Citizen (Citizen 3.0) fields
@@ -60,6 +62,31 @@ export interface Me {
 export async function fetchMe(): Promise<Me> {
   const { data } = await apiService.get<Me>('/me');
   return data;
+}
+
+// ---- Test SSO (mocked admin login) ----
+
+export interface TestSsoUser {
+  id: number;
+  name: string;
+  role: 'editor' | 'viewer';
+}
+
+/** Whether the admin login should offer the Test-SSO button. */
+export async function fetchTestSsoConfig(): Promise<{ enabled: boolean }> {
+  const { data } = await apiService.get<{ enabled: boolean }>('/admin/test-login/config');
+  return data;
+}
+
+/** The selectable mock handläggare. */
+export async function fetchTestSsoUsers(): Promise<TestSsoUser[]> {
+  const { data } = await apiService.get<{ users: TestSsoUser[] }>('/admin/test-login/options');
+  return data.users;
+}
+
+/** Log in as a mock handläggare with the shared password. */
+export async function testSsoLogin(userId: number, password: string): Promise<void> {
+  await apiService.post('/admin/test-login', { userId, password });
 }
 
 // ---- Engagements (firmatecknare / egen firma) ----
