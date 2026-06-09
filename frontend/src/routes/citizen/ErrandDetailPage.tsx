@@ -18,7 +18,6 @@ import {
   ArrowBack,
   DeleteOutline,
   DownloadOutlined,
-  EditOutlined,
   UploadFileOutlined,
 } from "@mui/icons-material";
 import { apiService, citizenAttachmentDownloadUrl } from "@/api/api-service";
@@ -147,15 +146,11 @@ export function CitizenErrandDetailPage() {
                   </Alert>
                 )}
                 {!isDecided && (
-                  <Box sx={{ mt: 2 }}>
-                    <Button
-                      variant='outlined'
-                      startIcon={<EditOutlined />}
-                      onClick={() => navigate(`/errands/${id}/edit`)}
-                    >
-                      Uppdatera uppgifter
-                    </Button>
-                  </Box>
+                  <Alert severity='info' sx={{ mt: 2 }}>
+                    {needsSupplement
+                      ? "Din ansökan är inskickad. Det enda du kan göra nu är att ladda upp den efterfrågade kompletteringen nedan — övriga uppgifter kan inte ändras."
+                      : "Din ansökan är inskickad och bindande. Uppgifterna kan inte ändras i efterhand. Om något behöver kompletteras får du besked här."}
+                  </Alert>
                 )}
               </Paper>
 

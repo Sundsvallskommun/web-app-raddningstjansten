@@ -296,26 +296,6 @@ export async function submitApplication(
   return data;
 }
 
-/** Fields a citizen may edit on a non-terminal errand. */
-export interface EgensotningUpdateInput {
-  applicantEmail?: string;
-  applicantPhone?: string;
-  applicantFirstName?: string;
-  applicantLastName?: string;
-  applicantAddress?: string;
-  applicantZipCode?: string;
-  applicantCity?: string;
-  fastighetsbeteckning?: string;
-  propertyAddress?: string;
-  description?: string;
-  sotningsobjekt: SotningsobjektInput[];
-}
-
-/** Citizen updates the data of their own (non-terminal) errand. */
-export async function updateErrand(id: string, payload: EgensotningUpdateInput): Promise<void> {
-  await apiService.put(`/citizen/errands/${id}`, payload);
-}
-
 export async function fetchMyErrands(): Promise<Errand[]> {
   const { data } = await apiService.get<Errand[]>('/citizen/errands');
   return data;

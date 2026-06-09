@@ -1,5 +1,4 @@
 import {
-  Body,
   BodyParam,
   Controller,
   Get,
@@ -37,20 +36,6 @@ import {
   StatusHistoryEntry,
 } from '@/data-contracts/rtj-management/data-contracts';
 
-/** Payload for a citizen editing a non-terminal egensotning errand. */
-interface EgensotningUpdate {
-  applicantEmail?: string;
-  applicantPhone?: string;
-  applicantFirstName?: string;
-  applicantLastName?: string;
-  applicantAddress?: string;
-  applicantZipCode?: string;
-  applicantCity?: string;
-  fastighetsbeteckning?: string;
-  propertyAddress?: string;
-  description?: string;
-  sotningsobjekt?: Array<Sotningsobjekt & { id?: string }>;
-}
 import { maskPersonNumber, maskReporterUserId } from '@utils/util';
 import { logger } from '@utils/logger';
 
@@ -292,93 +277,6 @@ export class ErrandController {
   async citizenDetail(@Param('id') id: string, @Req() req: Request): Promise<ErrandDetail> {
     const errand = await this.assertCitizenOwns(id, req.session.user!);
     return this.buildDetail(errand, 'citizen');
-  }
-
-  /**
-   * Citizen updates the data of their own errand. Allowed while the errand is
-   * non-terminal (not decided/rejected). All applicant-supplied fields can be
-   * changed (personnummer stays from the session, attachments use the supplement
-   * flow). The change is recorded in the log for both citizen and handläggare.
-   */
-  @Put('/citizen/errands/:id')
-  @UseBefore(authMiddleware)
-  async updateErrand(
-    @Param('id') id: string,
-    @Body() body: EgensotningUpdate,
-    @Req() req: Request,
-  ): Promise<{ status: string }> {
-    const user = req.session.user!;
-    const errand = await this.assertCitizenOwns(id, user);
-    if (TERMINAL_STATUSES.includes(errand.status ?? '')) {
-      throw new HttpException(409, 'A decided/rejected errand can no longer be updated');
-    }
-
-    // 1. Errand-level fields.
-    if (body.description !== undefined) {
-      await this.errandService.patchErrand(id, { description: body.description });
-    }
-
-    // 2. Egensotning details — personnummer always from the session, never the client.
-    await this.errandService
-      .putEgensotningDetails(id, {
-        personnummer: user.personNumber,
-        fastighetsbeteckning: body.fastighetsbeteckning,
-        propertyAddress: body.propertyAddress,
-      })
-      .catch(e => logger.error(`Could not update egensotning-details for ${id}: ${(e as Error).message}`));
-
-    // 3. Applicant stakeholder (name, address, contact channels).
-    const stakeholders = await this.errandService.getStakeholders(id).catch(() => []);
-    const applicant = stakeholders.find(s => s.role === 'APPLICANT');
-    if (applicant?.id) {
-      const contactChannels = [
-        ...(body.applicantEmail ? [{ key: 'Email', value: body.applicantEmail }] : []),
-        ...(body.applicantPhone ? [{ key: 'Phone', value: body.applicantPhone }] : []),
-      ];
-      await this.errandService
-        .updateStakeholder(id, applicant.id, {
-          firstName: body.applicantFirstName,
-          lastName: body.applicantLastName,
-          address: body.applicantAddress,
-          zipCode: body.applicantZipCode,
-          city: body.applicantCity,
-          contactChannels,
-        })
-        .catch(e => logger.error(`Could not update applicant stakeholder for ${id}: ${(e as Error).message}`));
-    }
-
-    // 4. Reconcile sotningsobjekt: patch existing, add new, delete removed.
-    const incoming = body.sotningsobjekt ?? [];
-    const current = await this.errandService.getSotningsobjekt(id).catch(() => []);
-    const incomingIds = new Set(incoming.filter(o => o.id).map(o => o.id));
-    for (const o of incoming) {
-      const payload: Sotningsobjekt = {
-        typ: o.typ,
-        fabrikat: o.fabrikat,
-        tillverkningsar: o.tillverkningsar,
-        bransleslag: o.bransleslag,
-        branslemangd: o.branslemangd,
-        sotningsintervallVeckor: o.sotningsintervallVeckor,
-      };
-      if (o.id) {
-        await this.errandService.updateSotningsobjekt(id, o.id, payload);
-      } else {
-        await this.errandService.addSotningsobjekt(id, payload);
-      }
-    }
-    for (const c of current) {
-      if (c.id && !incomingIds.has(c.id)) {
-        await this.errandService.deleteSotningsobjekt(id, c.id);
-      }
-    }
-
-    // 5. Audit note — visible to the handläggare and to the applicant.
-    await this.errandService
-      .addNote(id, { author: APPLICANT_NOTE_AUTHOR, body: 'Uppdaterade ärendets uppgifter' })
-      .catch(e => logger.error(`Could not add update note for ${id}: ${(e as Error).message}`));
-
-    logger.info(`Citizen updated errand ${id}`);
-    return { status: 'ok' };
   }
 
   /** Citizen downloads an attachment from their own errand. */

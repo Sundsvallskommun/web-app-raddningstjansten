@@ -8,6 +8,10 @@ import {
   CardContent,
   Checkbox,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControlLabel,
   FormGroup,
@@ -140,6 +144,7 @@ export function ErrandFormPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [objektInfoOpen, setObjektInfoOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const updateObjekt = (idx: number, field: keyof ObjektRow, value: string) =>
     setObjekt(prev => prev.map((o, i) => (i === idx ? { ...o, [field]: value } : o)));
@@ -161,7 +166,9 @@ export function ErrandFormPage() {
     navigate('/', { replace: true });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Validate, then ask the citizen to confirm — a submitted application is binding
+  // and cannot be edited afterwards.
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -173,6 +180,12 @@ export function ErrandFormPage() {
       setError('Du måste bifoga både brandskyddskontroll och utbildningsintyg.');
       return;
     }
+    setConfirmOpen(true);
+  }
+
+  async function doSubmit() {
+    setConfirmOpen(false);
+    if (!brandskyddskontroll || !utbildningsintyg) return;
 
     const sotningsobjekt: SotningsobjektInput[] = objekt.map(o => ({
       typ: o.typ,
@@ -420,6 +433,25 @@ export function ErrandFormPage() {
         </Box>
 
         <ObjektInfoDialog open={objektInfoOpen} onClose={() => setObjektInfoOpen(false)} />
+
+        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle>Skicka in ansökan?</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Kontrollera att uppgifterna stämmer. En inskickad ansökan är{' '}
+              <strong>bindande</strong> och uppgifterna kan inte ändras i efterhand.
+              Om något behöver kompletteras får du besked under ärendet.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setConfirmOpen(false)} disabled={submit.isPending}>
+              Avbryt
+            </Button>
+            <Button variant="contained" onClick={doSubmit} disabled={submit.isPending}>
+              {submit.isPending ? <CircularProgress size={24} /> : 'Skicka in'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </>
     </Wrapper>
   );

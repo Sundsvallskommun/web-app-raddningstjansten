@@ -175,37 +175,11 @@ export class ErrandService {
     await this.api.patch(`${this.base()}/${errandId}`, { assignedUserId, ...(status ? { status } : {}) });
   }
 
-  // ---- Updates (citizen editing a non-terminal errand) ----
-
-  /** Patch errand-level fields (e.g. description). */
-  public async patchErrand(errandId: string, patch: Partial<Errand>): Promise<void> {
-    await this.api.patch(`${this.base()}/${errandId}`, patch);
-  }
-
-  /** Replace the egensotning details (personnummer, fastighet, adress). */
-  public async putEgensotningDetails(errandId: string, details: Partial<EgensotningDetails>): Promise<void> {
-    await this.api.put(`${this.base()}/${errandId}/egensotning-details`, details);
-  }
+  // ---- Revoke (handläggare) ----
 
   /** Revoke a granted egensotning (sets revokedAt/revocationReason server-side). */
   public async revokeEgensotning(errandId: string, reason: string): Promise<void> {
     await this.api.post<void, RevokeRequest>(`${this.base()}/${errandId}/egensotning-details/revoke`, { reason });
-  }
-
-  public async updateStakeholder(errandId: string, stakeholderId: string, patch: Partial<Stakeholder>): Promise<void> {
-    await this.api.patch(`${this.base()}/${errandId}/stakeholders/${stakeholderId}`, patch);
-  }
-
-  public async addSotningsobjekt(errandId: string, objekt: Sotningsobjekt): Promise<void> {
-    await this.api.post(`${this.base()}/${errandId}/sotningsobjekt`, objekt);
-  }
-
-  public async updateSotningsobjekt(errandId: string, objektId: string, patch: Partial<Sotningsobjekt>): Promise<void> {
-    await this.api.patch(`${this.base()}/${errandId}/sotningsobjekt/${objektId}`, patch);
-  }
-
-  public async deleteSotningsobjekt(errandId: string, objektId: string): Promise<void> {
-    await this.api.delete(`${this.base()}/${errandId}/sotningsobjekt/${objektId}`);
   }
 
   // ---- Process messages (handläggare actions) ----
