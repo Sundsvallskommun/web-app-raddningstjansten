@@ -9,6 +9,7 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -30,6 +31,8 @@ import {
 } from "@/api/api-service";
 import { useAuth } from "@/auth/AuthContext";
 import Logo from "@/assets/logo-red.svg?react";
+import bgImage from "@/assets/background.jpg";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const ERROR_MESSAGES: Record<string, string> = {
   MISSING_PERMISSIONS:
@@ -65,6 +68,8 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
+
+  const isMd = useMediaQuery("(min-width:1100px)");
 
   function login() {
     // Full page navigation so the SAML redirect/POST handshake works.
@@ -117,119 +122,190 @@ export function AdminLoginPage() {
   }
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", mt: 8, px: 2 }}>
-      <Card variant='outlined' sx={{ display: "flex", p: 2 }}>
-        <CardContent>
-          <Stack spacing={2} alignItems='center'>
-            <Box sx={{ color: "secondary.main" }}>
-              <Logo />
-            </Box>
-            <Typography variant='h5'>
-              Räddningstjänsten - Administration
-            </Typography>
-            <Typography color='text.secondary' textAlign='center'>
-              Logga in med ditt organisationskonto.
-            </Typography>
+    <Container
+      className='login-wrapper'
+      maxWidth={false}
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: isMd ? "row" : "column",
+          justifyContent: "spaceBetween",
+          alignItems: "center",
+          gap: isMd ? 0 : 2,
+          background: "#fff",
+          height: "90vh",
+          width: "90vw",
+          maxWidth: "1260px",
+          borderRadius: "8px",
+          boxShadow: "0px 5px 16px 0px rgba(0,0,0,0.25)",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: isMd ? "65%" : "100%",
+            height: isMd ? "100%" : "auto",
+            background: "#fff",
+            backgroundImage: `url(${bgImage})`,
+            borderRadius: isMd ? "8px 0 0 8px" : "8px 8px 0 0",
+            p: 4,
+          }}
+        >
+          <Typography
+            color='#DE0634'
+            sx={{
+              fontSize: isMd ? "4rem" : "1.2rem",
+              fontWeight: 700,
+              wordBreak: "break-all",
+            }}
+          >
+            Räddningstjänsten
+          </Typography>
+          <Typography
+            color='#DE0634'
+            sx={{
+              fontSize: isMd ? "2rem" : "1rem",
+              fontWeight: 500,
+              wordBreak: "break-all",
+            }}
+          >
+            Administration
+          </Typography>
+          <Logo width={"64px"} />
+        </Box>
+        <Box
+          sx={{
+            minWidth: isMd ? "35%" : "100%",
+            display: "flex",
+            justifyContent: "center",
+            px: 2,
+          }}
+        >
+          <Card variant='outlined' sx={{ display: "flex", p: 2 }} elevation={2}>
+            <CardContent>
+              <Stack spacing={2} alignItems='center'>
+                <Typography color='text.secondary' textAlign='center'>
+                  Logga in med ditt organisationskonto eller Test SSO
+                </Typography>
 
-            {error && (
-              <Alert severity='error' sx={{ width: "100%" }}>
-                {ERROR_MESSAGES[error] ?? "Inloggningen kunde inte slutföras."}
-              </Alert>
-            )}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {error && (
+                  <Alert severity='error' sx={{ width: "100%" }}>
+                    {ERROR_MESSAGES[error] ??
+                      "Inloggningen kunde inte slutföras."}
+                  </Alert>
+                )}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <Button
+                    variant='outlined'
+                    size='large'
+                    onClick={login}
+                    fullWidth
+                  >
+                    {"Logga in med AD - Sundsvall SSO"}
+                  </Button>
+                  {testSsoEnabled && (
+                    <Button
+                      color='secondary'
+                      variant='outlined'
+                      size='large'
+                      onClick={() => setOpen(true)}
+                      fullWidth
+                    >
+                      {"Logga in med Test SSO"}
+                    </Button>
+                  )}
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Dialog
+            open={open}
+            onClose={() => !busy && setOpen(false)}
+            maxWidth='xs'
+            fullWidth
+          >
+            <DialogTitle>Logga in med Test SSO</DialogTitle>
+            <DialogContent>
+              {dialogError && (
+                <Alert severity='error' sx={{ mb: 2 }}>
+                  {dialogError}
+                </Alert>
+              )}
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <FormControl>
+                  <FormLabel>Välj testanvändare</FormLabel>
+                  <RadioGroup
+                    value={userId ?? ""}
+                    onChange={(e) => setUserId(Number(e.target.value))}
+                  >
+                    {users.map((u) => (
+                      <FormControlLabel
+                        key={u.id}
+                        value={u.id}
+                        control={<Radio />}
+                        disabled={busy}
+                        label={
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {u.name}
+                            <Chip
+                              size='small'
+                              label={ROLE_LABEL[u.role]}
+                              color={
+                                u.role === "editor" ? "success" : "default"
+                              }
+                              variant='outlined'
+                            />
+                          </Box>
+                        }
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+                <TextField
+                  label='Lösenord'
+                  type='password'
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={busy}
+                  fullWidth
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") submitTestSso();
+                  }}
+                />
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setOpen(false)} disabled={busy}>
+                Avbryt
+              </Button>
               <Button
                 variant='contained'
-                size='large'
-                onClick={login}
-                fullWidth
+                onClick={submitTestSso}
+                disabled={busy || users.length === 0}
               >
-                {"Logga in med AD - Sundsvall SSO"}
+                {busy ? <CircularProgress size={24} /> : "Logga in"}
               </Button>
-              {testSsoEnabled && (
-                <Button
-                  color='secondary'
-                  variant='contained'
-                  size='large'
-                  onClick={() => setOpen(true)}
-                  fullWidth
-                >
-                  {"Logga in med Test SSO"}
-                </Button>
-              )}
-            </Box>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      <Dialog
-        open={open}
-        onClose={() => !busy && setOpen(false)}
-        maxWidth='xs'
-        fullWidth
-      >
-        <DialogTitle>Logga in med Test SSO</DialogTitle>
-        <DialogContent>
-          {dialogError && (
-            <Alert severity='error' sx={{ mb: 2 }}>
-              {dialogError}
-            </Alert>
-          )}
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <FormControl>
-              <FormLabel>Välj testanvändare</FormLabel>
-              <RadioGroup
-                value={userId ?? ""}
-                onChange={(e) => setUserId(Number(e.target.value))}
-              >
-                {users.map((u) => (
-                  <FormControlLabel
-                    key={u.id}
-                    value={u.id}
-                    control={<Radio />}
-                    disabled={busy}
-                    label={
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        {u.name}
-                        <Chip
-                          size='small'
-                          label={ROLE_LABEL[u.role]}
-                          color={u.role === "editor" ? "success" : "default"}
-                          variant='outlined'
-                        />
-                      </Box>
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-            <TextField
-              label='Lösenord'
-              type='password'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy}
-              fullWidth
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submitTestSso();
-              }}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setOpen(false)} disabled={busy}>
-            Avbryt
-          </Button>
-          <Button
-            variant='contained'
-            onClick={submitTestSso}
-            disabled={busy || users.length === 0}
-          >
-            {busy ? <CircularProgress size={24} /> : "Logga in"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            </DialogActions>
+          </Dialog>
+        </Box>
+      </Box>
+    </Container>
   );
 }
