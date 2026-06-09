@@ -33,6 +33,7 @@ import {
   Notification,
   Sotningsobjekt,
   Stakeholder,
+  StatisticsResponse,
   StatusHistoryEntry,
 } from '@/data-contracts/rtj-management/data-contracts';
 
@@ -57,6 +58,9 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /** Stored decision documents are named "Beslut-<errandNumber>.pdf". */
 const DECISION_FILE_PREFIX = 'Beslut-';
+
+/** The egensotning errand type (module). Used to scope statistics to egensotning. */
+const EGENSOTNING_TYPE_SLUG = 'EGENSOTNING';
 
 /**
  * A stored decision document is now tagged category=DECISION; the filename prefix
@@ -456,6 +460,25 @@ export class ErrandController {
   async listAll(@QueryParam('page') page = 0, @QueryParam('size') size = 20) {
     const result = await this.errandService.findErrands({ page, size });
     return { ...result, errands: (result.errands ?? []).map(e => this.sanitizeErrand(e)) };
+  }
+
+  /**
+   * Workflow statistics for the dashboard. Scoped to a single errand type — the
+   * egensotning module by default — so it stays correct as other modules are
+   * added (pass ?typeSlug=… for those). Optional ?from/&to (ISO) date range.
+   */
+  @Get('/admin/statistics')
+  @UseBefore(authMiddleware, adminMiddleware)
+  async statistics(
+    @QueryParam('typeSlug') typeSlug: string,
+    @QueryParam('from') from: string,
+    @QueryParam('to') to: string,
+  ): Promise<StatisticsResponse> {
+    return this.errandService.getStatistics({
+      typeSlug: typeSlug || EGENSOTNING_TYPE_SLUG,
+      from: from || undefined,
+      to: to || undefined,
+    });
   }
 
   @Get('/admin/errands/:id')

@@ -5,6 +5,7 @@ import {
   assignErrand,
   fetchAdminErrand,
   fetchAdminErrands,
+  fetchAdminStatistics,
   fetchCitizenConfig,
   fetchCitizenErrand,
   fetchEngagements,
@@ -63,6 +64,14 @@ export function useAdminErrands(page: number, size: number) {
     queryKey: qk.adminErrands(page, size),
     queryFn: () => fetchAdminErrands(page, size),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminStatistics(typeSlug?: string, from?: string, to?: string) {
+  return useQuery({
+    queryKey: ['adminStatistics', typeSlug ?? '', from ?? '', to ?? ''],
+    queryFn: () => fetchAdminStatistics(typeSlug, from, to),
+    staleTime: 60_000,
   });
 }
 

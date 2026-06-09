@@ -14,6 +14,7 @@ import {
   RevokeRequest,
   Sotningsobjekt,
   Stakeholder,
+  StatisticsResponse,
   StatusHistoryEntry,
 } from '@/data-contracts/rtj-management/data-contracts';
 
@@ -211,5 +212,19 @@ export class ErrandService {
 
   public async sendProcessMessage(errandId: string, body: ProcessMessageRequest): Promise<void> {
     await this.api.post<void, ProcessMessageRequest>(`${this.base()}/${errandId}/process-messages`, body);
+  }
+
+  // ---- Statistics (workflow overview) ----
+
+  /** Aggregated statistics, optionally scoped to an errand type and a date range. */
+  public async getStatistics(params: { typeSlug?: string; from?: string; to?: string }): Promise<StatisticsResponse> {
+    const res = await this.api.get<StatisticsResponse>(`${this.nsBase()}/statistics`, {
+      params: {
+        ...(params.typeSlug ? { typeSlug: params.typeSlug } : {}),
+        ...(params.from ? { from: params.from } : {}),
+        ...(params.to ? { to: params.to } : {}),
+      },
+    });
+    return res.data;
   }
 }

@@ -193,3 +193,23 @@ export interface Note {
   author?: string;
   created?: string;
 }
+
+export interface StatusCount {
+  status?: string;
+  count?: number;
+}
+
+export interface HandlaggareCount {
+  handlaggare?: string;
+  count?: number;
+}
+
+/** Aggregated workflow statistics for an errand type (module). */
+export interface StatisticsResponse {
+  total?: number;
+  byStatus?: StatusCount[];
+  byHandlaggare?: HandlaggareCount[];
+  unassigned?: number;
+  decidedCount?: number;
+  averageHandlaggningstidSeconds?: number;
+}

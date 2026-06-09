@@ -22,6 +22,7 @@ const STATUS: Record<string, StatusMeta> = {
   DECIDED: { label: "Beslutad", color: "success" },
   APPROVED: { label: "Godkänd", color: "success" },
   REJECTED: { label: "Avslagen", color: "error" },
+  REVOKED: { label: "Återkallad", color: "default" },
 };
 
 export function statusLabel(status?: string): string {

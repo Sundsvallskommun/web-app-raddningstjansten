@@ -332,6 +332,39 @@ export async function fetchAdminErrands(page = 0, size = 20): Promise<FindErrand
   return data;
 }
 
+// ---- Statistics (admin workflow overview) ----
+
+export interface StatusCount {
+  status?: string;
+  count?: number;
+}
+
+export interface HandlaggareCount {
+  handlaggare?: string;
+  count?: number;
+}
+
+export interface Statistics {
+  total?: number;
+  byStatus?: StatusCount[];
+  byHandlaggare?: HandlaggareCount[];
+  unassigned?: number;
+  decidedCount?: number;
+  averageHandlaggningstidSeconds?: number;
+}
+
+/** Workflow statistics for one errand type (defaults to egensotning), optional date range. */
+export async function fetchAdminStatistics(
+  typeSlug?: string,
+  from?: string,
+  to?: string,
+): Promise<Statistics> {
+  const { data } = await apiService.get<Statistics>('/admin/statistics', {
+    params: { typeSlug, from, to },
+  });
+  return data;
+}
+
 export async function fetchCitizenErrand(id: string): Promise<ErrandDetail> {
   const { data } = await apiService.get<ErrandDetail>(`/citizen/errands/${id}`);
   return data;

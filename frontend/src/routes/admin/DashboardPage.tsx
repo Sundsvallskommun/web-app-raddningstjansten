@@ -1,8 +1,19 @@
-import { Box, Button, Paper, Typography } from "@mui/material";
+import { lazy, Suspense } from "react";
+import { Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import DemoAlert from "@/components/DemoAlert";
+
+// Charts (@mui/x-charts + d3) are admin-only and heavy — lazy-load them so they
+// stay out of the bundle served to citizens and the login pages.
+const ErrandStatistics = lazy(() =>
+  import("@/components/ErrandStatistics").then(m => ({ default: m.ErrandStatistics })),
+);
+
+// Errand types (modules) shown on the dashboard. Each renders its own scoped
+// statistics panel — add new modules here as they are introduced.
+const ERRAND_TYPES = [{ typeSlug: "EGENSOTNING", title: "Egensotning" }];
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
@@ -22,23 +33,41 @@ export function AdminDashboardPage() {
       showNav
       navType='admin'
     >
-      <Paper sx={{ p: 4 }}>
-        <Typography variant='h4' gutterBottom>
-          Din översikt
-        </Typography>
-        <Typography color='text.secondary' gutterBottom>
-          {`Inloggad som ${user?.name ?? ""}`}
-        </Typography>
-        <Box sx={{ mt: 2 }}>
-          <Button
-            variant='contained'
-            onClick={() => navigate("/admin/errands")}
+      <Stack spacing={3}>
+        <Paper sx={{ p: 4 }}>
+          <Typography variant='h4' gutterBottom>
+            Din översikt
+          </Typography>
+          <Typography color='text.secondary' gutterBottom>
+            {`Inloggad som ${user?.name ?? ""}`}
+          </Typography>
+          <Box sx={{ mt: 2 }}>
+            <Button variant='contained' onClick={() => navigate("/admin/errands")}>
+              Visa inkomna ärenden
+            </Button>
+          </Box>
+          <DemoAlert title='Information' />
+        </Paper>
+
+        <Box>
+          <Typography variant='h5' gutterBottom>
+            Statistik
+          </Typography>
+          <Suspense
+            fallback={
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress />
+              </Box>
+            }
           >
-            Visa inkomna ärenden
-          </Button>
+            <Stack spacing={2}>
+              {ERRAND_TYPES.map(t => (
+                <ErrandStatistics key={t.typeSlug} typeSlug={t.typeSlug} title={t.title} />
+              ))}
+            </Stack>
+          </Suspense>
         </Box>
-        <DemoAlert title='Information' />
-      </Paper>
+      </Stack>
     </Wrapper>
   );
 }
