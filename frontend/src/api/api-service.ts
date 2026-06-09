@@ -321,6 +321,12 @@ export async function fetchMyErrands(): Promise<Errand[]> {
   return data;
 }
 
+/** Citizen UI config (e.g. how many days before expiry to warn). */
+export async function fetchCitizenConfig(): Promise<{ validityWarningDays: number }> {
+  const { data } = await apiService.get<{ validityWarningDays: number }>('/citizen/config');
+  return data;
+}
+
 export async function fetchAdminErrands(page = 0, size = 20): Promise<FindErrandsResponse> {
   const { data } = await apiService.get<FindErrandsResponse>('/admin/errands', { params: { page, size } });
   return data;

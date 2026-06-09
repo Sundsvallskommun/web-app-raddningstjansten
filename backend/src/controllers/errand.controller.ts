@@ -15,6 +15,7 @@ import {
 import { Request, Response } from 'express';
 import multer from 'multer';
 
+import { egensotningValidityWarningDays } from '@config';
 import authMiddleware from '@middlewares/auth.middleware';
 import adminMiddleware from '@middlewares/admin.middleware';
 import editorMiddleware from '@middlewares/editor.middleware';
@@ -244,6 +245,13 @@ export class ErrandController {
 
     const id = await this.errandService.submitApplication(application, { brandskyddskontroll, utbildningsintyg });
     return { id };
+  }
+
+  /** Client config for the citizen UI (e.g. when to warn about expiring beslut). */
+  @Get('/citizen/config')
+  @UseBefore(authMiddleware)
+  citizenConfig(@Res() res: Response) {
+    return res.json({ validityWarningDays: egensotningValidityWarningDays() });
   }
 
   /**

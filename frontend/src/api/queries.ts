@@ -5,6 +5,7 @@ import {
   assignErrand,
   fetchAdminErrand,
   fetchAdminErrands,
+  fetchCitizenConfig,
   fetchCitizenErrand,
   fetchEngagements,
   fetchMyErrands,
@@ -42,6 +43,10 @@ export function useEngagements() {
 
 export function useMyErrands() {
   return useQuery({ queryKey: qk.myErrands, queryFn: fetchMyErrands });
+}
+
+export function useCitizenConfig() {
+  return useQuery({ queryKey: ['citizenConfig'], queryFn: fetchCitizenConfig, staleTime: 30 * 60_000 });
 }
 
 export function useCitizenErrand(id?: string) {

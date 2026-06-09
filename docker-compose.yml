@@ -40,6 +40,7 @@ services:
       RTJ_NAMESPACE: ${RTJ_NAMESPACE:-EGENSOTNING}
       RTJ_DEFAULT_ASSIGNEE: ${RTJ_DEFAULT_ASSIGNEE:-bsk-handlaggare}
       RTJ_PROCESS_DEFINITION: ${RTJ_PROCESS_DEFINITION:-Hantera ansökan om egensotning}
+      EGENSOTNING_VALIDITY_WARNING_DAYS: ${EGENSOTNING_VALIDITY_WARNING_DAYS:-30}
     depends_on:
       - testsso-db
     networks:

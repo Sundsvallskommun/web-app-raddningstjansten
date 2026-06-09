@@ -104,3 +104,13 @@ export const citizenAuthMode = (): 'saml' | 'mock' =>
  */
 export const testSsoConfigured = (): boolean =>
   Boolean((TESTSSO_DATABASE_URL ?? '').trim() && (EMPLOYEE_LOGIN_PASSWORD ?? '').trim());
+
+/**
+ * How many days before an egensotning's validUntil the citizen should be warned
+ * that it is about to expire. Configured via EGENSOTNING_VALIDITY_WARNING_DAYS
+ * (defaults to 30).
+ */
+export const egensotningValidityWarningDays = (): number => {
+  const n = Number(process.env.EGENSOTNING_VALIDITY_WARNING_DAYS);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 30;
+};

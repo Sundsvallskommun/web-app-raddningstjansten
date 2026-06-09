@@ -1,4 +1,4 @@
-import { cleanEnv, port, str, url } from 'envalid';
+import { cleanEnv, num, port, str, url } from 'envalid';
 
 // Make sure the essentials are present in the environment before booting.
 const validateEnv = () => {
@@ -43,6 +43,8 @@ const validateEnv = () => {
     TESTSSO_DATABASE_URL: str({ default: '' }),
     // rtj-management errand API (separate service, no WSO2 token)
     RTJ_MANAGEMENT_BASE_URL: url(),
+    // Days before an egensotning's validUntil to warn the citizen it expires.
+    EGENSOTNING_VALIDITY_WARNING_DAYS: num({ default: 30 }),
   });
 };
 
