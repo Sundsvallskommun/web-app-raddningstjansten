@@ -15,6 +15,7 @@ import {
 import { CheckCircleOutline, CancelOutlined, EditOutlined, RefreshOutlined } from '@mui/icons-material';
 import { decisionPreview } from '@/api/api-service';
 import { useAdminDecision } from '@/api/queries';
+import { apiErrorMessage } from '@/utils/apiError';
 
 interface Props {
   errandId: string;
@@ -48,7 +49,7 @@ export function DecisionDialog({ errandId, approved, onClose, onConfirmed }: Pro
         const res = await decisionPreview(errandId, approved, text || undefined);
         setHtml(res.html);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Kunde inte rendera beslutsmallen.');
+        setError(apiErrorMessage(e, 'Kunde inte rendera beslutsmallen.'));
       } finally {
         setLoadingPreview(false);
       }
@@ -74,7 +75,7 @@ export function DecisionDialog({ errandId, approved, onClose, onConfirmed }: Pro
       onConfirmed?.();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Beslutet kunde inte registreras.');
+      setError(apiErrorMessage(e, 'Beslutet kunde inte registreras.'));
     }
   }
 

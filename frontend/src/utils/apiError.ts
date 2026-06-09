@@ -5,6 +5,26 @@ export function httpStatus(error: unknown): number | undefined {
   return axios.isAxiosError(error) ? error.response?.status : undefined;
 }
 
+/**
+ * The most useful human-readable message for a failed request: the BFF's response
+ * body message (message/detail/title) when present, otherwise the given fallback.
+ * Avoids surfacing axios's generic "Request failed with status code 400" — the
+ * real reason from the API (e.g. "Fastigheten ligger i fel område …") is what the
+ * user needs to see.
+ */
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (typeof data === 'string' && data.trim()) return data.trim();
+    if (data && typeof data === 'object') {
+      const body = data as { message?: string; detail?: string; title?: string };
+      const fromBody = body.message ?? body.detail ?? body.title;
+      if (fromBody && fromBody.trim()) return fromBody.trim();
+    }
+  }
+  return fallback;
+}
+
 // Gateway/proxy statuses that mean "the backend is up but its upstream isn't".
 const UPSTREAM_STATUSES = new Set([502, 503, 504]);
 

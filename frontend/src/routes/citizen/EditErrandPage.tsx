@@ -24,6 +24,7 @@ import { Wrapper } from '@/components/Wrapper';
 import { ServiceError } from '@/components/ServiceError';
 import { ObjektInfoDialog } from '@/components/ObjektInfoDialog';
 import { isUuid } from '@/utils/uuid';
+import { apiErrorMessage } from '@/utils/apiError';
 
 interface ObjektRow {
   id?: string;
@@ -162,7 +163,7 @@ export function EditErrandPage() {
       await update.mutateAsync(payload);
       navigate(`/errands/${id}`, { replace: true });
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Kunde inte spara ändringarna.');
+      setFormError(apiErrorMessage(err, 'Kunde inte spara ändringarna.'));
     }
   }
 

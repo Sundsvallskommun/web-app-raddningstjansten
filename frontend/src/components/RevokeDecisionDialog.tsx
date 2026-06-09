@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useRevokeDecision } from "@/api/queries";
+import { apiErrorMessage } from "@/utils/apiError";
 
 /**
  * Admin (editor) revokes a granted egensotning. Requires a free-text reason,
@@ -50,7 +51,7 @@ export function RevokeDecisionDialog({
       onRevoked?.();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Kunde inte återkalla beslutet.");
+      setError(apiErrorMessage(e, "Kunde inte återkalla beslutet."));
     }
   }
 

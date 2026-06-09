@@ -22,6 +22,7 @@ import {
 import { AddCircleOutline, DeleteOutline, InfoOutlined, UploadFileOutlined } from '@mui/icons-material';
 import { apiService, type SotningsobjektInput } from '@/api/api-service';
 import { useEngagements, useSubmitApplication } from '@/api/queries';
+import { apiErrorMessage } from '@/utils/apiError';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ObjektInfoDialog } from '@/components/ObjektInfoDialog';
@@ -205,7 +206,7 @@ export function ErrandFormPage() {
       });
       navigate('/errands', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kunde inte skicka ansökan.');
+      setError(apiErrorMessage(err, 'Kunde inte skicka ansökan.'));
     }
   }
 

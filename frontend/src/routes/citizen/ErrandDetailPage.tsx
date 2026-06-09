@@ -31,6 +31,7 @@ import { DecisionPdfCard } from "@/components/DecisionPdfCard";
 import { DecisionValidityInfo } from "@/components/DecisionValidityInfo";
 import { ServiceError } from "@/components/ServiceError";
 import { markSeen } from "@/utils/seenErrands";
+import { apiErrorMessage } from "@/utils/apiError";
 import {
   applicantName,
   attachmentCategoryLabel,
@@ -84,11 +85,7 @@ export function CitizenErrandDetailPage() {
         "Kompletteringen är inskickad. Ärendet granskas på nytt.",
       );
     } catch (err) {
-      setSupplementMsg(
-        err instanceof Error
-          ? err.message
-          : "Kunde inte skicka kompletteringen.",
-      );
+      setSupplementMsg(apiErrorMessage(err, "Kunde inte skicka kompletteringen."));
     }
   }
 

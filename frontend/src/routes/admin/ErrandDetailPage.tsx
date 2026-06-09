@@ -32,6 +32,7 @@ import { DecisionValidityInfo } from "@/components/DecisionValidityInfo";
 import { RevokeDecisionDialog } from "@/components/RevokeDecisionDialog";
 import { ServiceError } from "@/components/ServiceError";
 import { markSeen } from "@/utils/seenErrands";
+import { apiErrorMessage } from "@/utils/apiError";
 import {
   applicantName,
   attachmentCategoryLabel,
@@ -97,9 +98,7 @@ export function ErrandDetailPage() {
       await assign.mutateAsync();
       setActionMsg("Du tilldelades som handläggare.");
     } catch (e) {
-      setActionMsg(
-        e instanceof Error ? e.message : "Tilldelningen misslyckades.",
-      );
+      setActionMsg(apiErrorMessage(e, "Tilldelningen misslyckades."));
     }
   }
 
