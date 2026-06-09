@@ -82,6 +82,10 @@ export function ErrandDetailPage() {
   // null = dialog closed; true = approving; false = rejecting.
   const [decisionApproved, setDecisionApproved] = useState<boolean | null>(null);
   const [revokeOpen, setRevokeOpen] = useState(false);
+  // True from when a decision is confirmed until rtj-management has moved the
+  // errand to its terminal status (the decision PDF, status stepper and log only
+  // appear once the async process completes).
+  const [decisionPending, setDecisionPending] = useState(false);
 
   // Clear the "updated" badge whenever fresh data arrives (incl. polling).
   useEffect(() => {
@@ -109,6 +113,22 @@ export function ErrandDetailPage() {
     data.errand.assignedUserId === user?.username;
   const status = data?.errand.status;
   const isDecided = status === "DECIDED" || status === "REJECTED";
+
+  // While a decision propagates, poll faster than the default interval and clear
+  // the pending state once the errand reaches its terminal status (60s safety cap).
+  useEffect(() => {
+    if (!decisionPending) return;
+    if (isDecided) {
+      setDecisionPending(false);
+      return;
+    }
+    const poll = setInterval(() => refetch(), 1500);
+    const cap = setTimeout(() => setDecisionPending(false), 60000);
+    return () => {
+      clearInterval(poll);
+      clearTimeout(cap);
+    };
+  }, [decisionPending, isDecided, refetch]);
 
   const outcome = data ? outcomeMessage(data.details, "admin") : null;
   const inReview = data?.errand.status === "UNDER_MANUAL_REVIEW";
@@ -219,7 +239,7 @@ export function ErrandDetailPage() {
                   <Field label='Inskickat' value={fmt(data.errand.created)} />
                 </Box>
 
-                {canDecide && (
+                {canDecide && !decisionPending && (
                   <>
                     <Divider sx={{ my: 2 }} />
                     <Typography variant='subtitle2' gutterBottom>
@@ -257,6 +277,21 @@ export function ErrandDetailPage() {
                   </>
                 )}
               </Paper>
+
+              {decisionPending && !isDecided && (
+                <Paper
+                  sx={{ p: 3, display: "flex", alignItems: "center", gap: 2 }}
+                >
+                  <CircularProgress size={28} />
+                  <Box>
+                    <Typography>Beslutet behandlas…</Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Beslutsdokument, handläggningsprocess och händelselogg
+                      uppdateras strax.
+                    </Typography>
+                  </Box>
+                </Paper>
+              )}
 
               {isDecided && id && (
                 <>
@@ -466,11 +501,12 @@ export function ErrandDetailPage() {
             errandId={id}
             approved={decisionApproved}
             onClose={() => setDecisionApproved(null)}
-            onConfirmed={() =>
+            onConfirmed={() => {
               setActionMsg(
                 decisionApproved ? "Ärendet godkändes." : "Ärendet avslogs.",
-              )
-            }
+              );
+              setDecisionPending(true);
+            }}
           />
         )}
 
