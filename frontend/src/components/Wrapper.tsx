@@ -3,6 +3,7 @@ import {
   AccountCircle,
   AccountCircleRounded,
   Logout,
+  Menu as MenuIcon,
 } from "@mui/icons-material";
 import {
   AppBar,
@@ -18,7 +19,7 @@ import {
 } from "@mui/material";
 import { ReactElement, useState } from "react";
 import { ProfileDialog } from "./ProfileDialog";
-import { NavDrawer } from "./NavDrawer";
+import { SideNav } from "./SideNav";
 import { Footer } from "./Footer";
 import { SessionTimeout } from "./SessionTimeout";
 import Logo from "@/assets/logo-red.svg?react";
@@ -52,6 +53,7 @@ export const Wrapper = ({
 }: WrapperProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -73,11 +75,21 @@ export const Wrapper = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AppBar position='static' color={color}>
+      <AppBar position='sticky' color={color}>
         <Toolbar disableGutters sx={{ ...contentSx, width: "100%" }}>
-          {showNav && <NavDrawer navType={navType} />}
+          {showNav && (
+            <IconButton
+              color='inherit'
+              edge='start'
+              aria-label='Öppna meny'
+              onClick={() => setMobileNavOpen(true)}
+              sx={{ mr: 1, display: { md: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           <Box sx={{ display: "flex", mr: 1.5 }}>
-            <Logo width={"48px"} />
+            <Logo width={"28px"} />
           </Box>
           <Typography variant='h6' sx={{ flexGrow: 1 }}>
             {title}
@@ -124,13 +136,27 @@ export const Wrapper = ({
           </div>
         </Toolbar>
       </AppBar>
-      <Container
-        maxWidth={false}
-        disableGutters
-        sx={{ ...contentSx, mt: 4, mb: 4, flexGrow: 1, width: "100%" }}
-      >
-        {children}
-      </Container>
+      <Box sx={{ display: "flex", flexGrow: 1, width: "100%" }}>
+        {showNav && (
+          <SideNav
+            navType={navType}
+            mobileOpen={mobileNavOpen}
+            onMobileClose={() => setMobileNavOpen(false)}
+          />
+        )}
+        <Box
+          component='main'
+          sx={{ flexGrow: 1, minWidth: 0, display: "flex" }}
+        >
+          <Container
+            maxWidth={false}
+            disableGutters
+            sx={{ ...contentSx, mt: 4, mb: 6, flexGrow: 1, width: "100%" }}
+          >
+            {children}
+          </Container>
+        </Box>
+      </Box>
       <Footer />
       <ProfileDialog
         onClose={handleCloseProfileDialog}

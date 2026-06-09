@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Badge,
   Box,
@@ -22,6 +22,7 @@ import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { ErrandFilters } from '@/components/ErrandFilters';
 import { ServiceError } from '@/components/ServiceError';
 import { applyErrandFilters, emptyErrandFilters } from '@/utils/errandFilter';
+import { moduleBySlug } from '@/utils/modules';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
@@ -30,8 +31,14 @@ export function MyErrandsPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
   const { data: errands = [], isLoading: loading, isError, error, refetch, isFetching } = useMyErrands();
+  const [searchParams] = useSearchParams();
+  const activeModule = moduleBySlug(searchParams.get('module'));
   const [filters, setFilters] = useState(emptyErrandFilters);
-  const filtered = useMemo(() => applyErrandFilters(errands, filters, 'citizen'), [errands, filters]);
+  const scoped = useMemo(
+    () => (activeModule ? errands.filter(e => e.typeSlug === activeModule.typeSlug) : errands),
+    [errands, activeModule],
+  );
+  const filtered = useMemo(() => applyErrandFilters(scoped, filters, 'citizen'), [scoped, filters]);
 
   useEffect(() => {
     baselineSeen(errands);
@@ -54,7 +61,9 @@ export function MyErrandsPage() {
     >
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-          <Typography variant="h4">Mina ärenden</Typography>
+          <Typography variant="h4">
+            Mina ärenden{activeModule ? ` · ${activeModule.label}` : ''}
+          </Typography>
           <Button variant="contained" onClick={() => navigate('/errand/new')}>
             Ny ansökan
           </Button>

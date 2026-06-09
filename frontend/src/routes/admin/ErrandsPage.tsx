@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Badge,
   Box,
@@ -20,6 +20,7 @@ import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { ErrandFilters } from '@/components/ErrandFilters';
 import { ServiceError } from '@/components/ServiceError';
 import { applyErrandFilters, emptyErrandFilters } from '@/utils/errandFilter';
+import { moduleBySlug } from '@/utils/modules';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
@@ -35,17 +36,25 @@ export function AdminErrandsPage() {
   const { data, isLoading: loading, isError, error, refetch, isFetching } = useAdminErrands(0, FETCH_SIZE);
   const all = data?.errands ?? [];
 
+  const [searchParams] = useSearchParams();
+  const activeModule = moduleBySlug(searchParams.get('module'));
+
   const [filters, setFilters] = useState(emptyErrandFilters);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
 
-  const filtered = useMemo(() => applyErrandFilters(all, filters, 'admin'), [all, filters]);
+  // Scope to the selected module (errand type) first, then apply the filter bar.
+  const scoped = useMemo(
+    () => (activeModule ? all.filter(e => e.typeSlug === activeModule.typeSlug) : all),
+    [all, activeModule],
+  );
+  const filtered = useMemo(() => applyErrandFilters(scoped, filters, 'admin'), [scoped, filters]);
   const pageRows = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  // Reset to the first page whenever the filter changes.
+  // Reset to the first page whenever the filter or module changes.
   useEffect(() => {
     setPage(0);
-  }, [filters]);
+  }, [filters, activeModule?.slug]);
 
   useEffect(() => {
     baselineSeen(all);
@@ -66,7 +75,7 @@ export function AdminErrandsPage() {
     >
       <Box>
         <Typography variant="h4" gutterBottom>
-          Inkomna ärenden
+          Inkomna ärenden{activeModule ? ` · ${activeModule.label}` : ''}
         </Typography>
 
         {loading ? (

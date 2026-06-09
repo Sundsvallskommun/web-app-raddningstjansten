@@ -12,7 +12,6 @@ export function Footer() {
     <Box
       component='footer'
       sx={{
-        mt: 6,
         bgcolor: "#520000",
         color: "#ffffff",
         borderTop: "4px solid",
