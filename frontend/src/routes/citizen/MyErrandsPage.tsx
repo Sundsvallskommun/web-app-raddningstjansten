@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Badge,
@@ -19,7 +19,9 @@ import { useMyErrands } from '@/api/queries';
 import { useAuth } from '@/auth/AuthContext';
 import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
+import { ErrandFilters } from '@/components/ErrandFilters';
 import { ServiceError } from '@/components/ServiceError';
+import { applyErrandFilters, emptyErrandFilters } from '@/utils/errandFilter';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
@@ -28,6 +30,8 @@ export function MyErrandsPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
   const { data: errands = [], isLoading: loading, isError, error, refetch, isFetching } = useMyErrands();
+  const [filters, setFilters] = useState(emptyErrandFilters);
+  const filtered = useMemo(() => applyErrandFilters(errands, filters, 'citizen'), [errands, filters]);
 
   useEffect(() => {
     baselineSeen(errands);
@@ -68,37 +72,48 @@ export function MyErrandsPage() {
               Du har inga inskickade ärenden ännu.
             </Typography>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Ärende</TableCell>
-                  <TableCell>Titel</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Inskickat</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {errands.map(e => (
-                  <TableRow
-                    key={e.id}
-                    hover
-                    sx={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/errands/${e.id}`)}
-                  >
-                    <TableCell>
-                      <Badge color="error" variant="dot" invisible={!isUpdated(e.id, e.modified)}>
-                        <span>{e.errandNumber ?? e.id?.slice(0, 8)}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{e.title}</TableCell>
-                    <TableCell>
-                      <ErrandStatusChip status={e.status} audience="citizen" />
-                    </TableCell>
-                    <TableCell>{fmtDate(e.created)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <Box sx={{ mb: 2 }}>
+                <ErrandFilters value={filters} onChange={setFilters} audience="citizen" />
+              </Box>
+              {filtered.length === 0 ? (
+                <Typography color="text.secondary" sx={{ p: 1 }}>
+                  Inga ärenden matchar filtret.
+                </Typography>
+              ) : (
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Ärende</TableCell>
+                      <TableCell>Titel</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Inskickat</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filtered.map(e => (
+                      <TableRow
+                        key={e.id}
+                        hover
+                        sx={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/errands/${e.id}`)}
+                      >
+                        <TableCell>
+                          <Badge color="error" variant="dot" invisible={!isUpdated(e.id, e.modified)}>
+                            <span>{e.errandNumber ?? e.id?.slice(0, 8)}</span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{e.title}</TableCell>
+                        <TableCell>
+                          <ErrandStatusChip status={e.status} audience="citizen" />
+                        </TableCell>
+                        <TableCell>{fmtDate(e.created)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </>
           )}
         </Paper>
       </Box>
