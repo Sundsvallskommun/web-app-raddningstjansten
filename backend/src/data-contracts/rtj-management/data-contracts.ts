@@ -66,6 +66,7 @@ export type AttachmentCategory =
   | 'COMPETENCE'
   | 'BRANDSKYDDSKONTROLL'
   | 'UTBILDNINGSINTYG'
+  | 'DECISION'
   | 'OTHER';
 
 export interface Attachment {
@@ -98,6 +99,10 @@ export interface EgensotningApplication {
   fastighetsbeteckning: string;
   sotningsobjekt: Sotningsobjekt[];
   propertyAddress?: string;
+  // Property ownership declaration (feeds the verification/manual-review logic).
+  ownsProperty?: boolean;
+  ownershipMotivation?: string;
+  appliesForOtherProperty?: boolean;
   applicantFirstName?: string;
   applicantLastName?: string;
   applicantAddress?: string;
@@ -117,14 +122,30 @@ export interface EgensotningDetails {
   personnummer?: string;
   fastighetsbeteckning?: string;
   propertyAddress?: string;
+  // Ownership declaration carried over from the application.
+  ownsProperty?: boolean;
+  ownershipMotivation?: string;
+  appliesForOtherProperty?: boolean;
+  motivering?: string;
   bilagaPresent?: boolean;
   registeredAtProperty?: boolean;
   reapplicationOk?: boolean;
   lastOutcome?: string; // AUTO_APPROVE | NEEDS_MANUAL_REVIEW | NEEDS_SUPPLEMENT
   manualReviewReason?: string; // NOT_REGISTERED | REAPPLICATION_REJECTED | REAPPLICATION_ONGOING
   lastVerifiedAt?: string;
+  // Validity window of a granted egensotning + revocation/reminder bookkeeping.
+  validFrom?: string;
+  validUntil?: string;
+  reminderSentAt?: string;
+  revokedAt?: string;
+  revocationReason?: string;
   created?: string;
   modified?: string;
+}
+
+/** Body for revoking a granted egensotning. */
+export interface RevokeRequest {
+  reason: string;
 }
 
 export interface Decision {

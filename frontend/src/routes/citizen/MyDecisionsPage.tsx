@@ -68,6 +68,7 @@ export function MyDecisionsPage() {
                   <TableCell>Titel</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Datum</TableCell>
+                  <TableCell>Giltighet</TableCell>
                   <TableCell align="right">Beslut</TableCell>
                 </TableRow>
               </TableHead>
@@ -80,6 +81,13 @@ export function MyDecisionsPage() {
                       <ErrandStatusChip status={e.status} audience="citizen" />
                     </TableCell>
                     <TableCell>{fmtDate(e.modified ?? e.created)}</TableCell>
+                    <TableCell>
+                      {e.revokedAt
+                        ? `Återkallat ${fmtDate(e.revokedAt)}`
+                        : e.validFrom || e.validUntil
+                          ? `${fmtDate(e.validFrom)} – ${fmtDate(e.validUntil)}`
+                          : '—'}
+                    </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
                         <Button

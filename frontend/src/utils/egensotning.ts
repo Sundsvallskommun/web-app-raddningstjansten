@@ -14,6 +14,7 @@ const ATTACHMENT_CATEGORY_LABEL: Record<AttachmentCategory, string> = {
   UTBILDNINGSINTYG: 'Utbildningsintyg',
   DELEGATION: 'Fullmakt',
   COMPETENCE: 'Kompetensbevis',
+  DECISION: 'Beslut',
   OTHER: 'Övrig bilaga',
 };
 

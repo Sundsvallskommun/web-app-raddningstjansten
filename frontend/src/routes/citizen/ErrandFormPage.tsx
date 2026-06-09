@@ -6,8 +6,11 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   CircularProgress,
   Divider,
+  FormControlLabel,
+  FormGroup,
   IconButton,
   MenuItem,
   Paper,
@@ -123,6 +126,10 @@ export function ErrandFormPage() {
   const [fastighetsbeteckning, setFastighetsbeteckning] = useState(
     user?.citizen?.realEstateDescription ?? '',
   );
+  // Ägandedeklaration (påverkar verifiering/manuell granskning hos rtj).
+  const [ownsProperty, setOwnsProperty] = useState(true);
+  const [appliesForOtherProperty, setAppliesForOtherProperty] = useState(false);
+  const [ownershipMotivation, setOwnershipMotivation] = useState('');
   const [objekt, setObjekt] = useState<ObjektRow[]>([emptyObjekt()]);
   const [ovrigt, setOvrigt] = useState('');
 
@@ -181,6 +188,9 @@ export function ErrandFormPage() {
           applicantEmail: email,
           fastighetsbeteckning,
           propertyAddress: address || undefined,
+          ownsProperty,
+          appliesForOtherProperty,
+          ownershipMotivation: ownershipMotivation || undefined,
           applicantFirstName: firstName || undefined,
           applicantLastName: lastName || undefined,
           applicantAddress: address || undefined,
@@ -261,6 +271,38 @@ export function ErrandFormPage() {
                   required
                   fullWidth
                 />
+
+                <FormGroup>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={ownsProperty}
+                        onChange={e => setOwnsProperty(e.target.checked)}
+                      />
+                    }
+                    label="Jag äger fastigheten"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={appliesForOtherProperty}
+                        onChange={e => setAppliesForOtherProperty(e.target.checked)}
+                      />
+                    }
+                    label="Ansökan avser någon annans fastighet"
+                  />
+                </FormGroup>
+                {(!ownsProperty || appliesForOtherProperty) && (
+                  <TextField
+                    label="Koppling till fastigheten"
+                    helperText="Beskriv din koppling till fastigheten, t.ex. delägare eller fullmakt."
+                    value={ownershipMotivation}
+                    onChange={e => setOwnershipMotivation(e.target.value)}
+                    multiline
+                    rows={2}
+                    fullWidth
+                  />
+                )}
 
                 {objekt.map((o, idx) => (
                   <Card key={idx} variant="outlined">

@@ -119,6 +119,11 @@ export interface Errand {
   created?: string;
   modified?: string;
   touched?: string;
+  // Egensotning validity window — only populated for decided errands in the
+  // citizen errand list (used by "Mina beslut").
+  validFrom?: string;
+  validUntil?: string;
+  revokedAt?: string;
 }
 
 export interface ContactChannel {
@@ -161,6 +166,17 @@ export interface EgensotningDetails {
   personnummer?: string;
   fastighetsbeteckning?: string;
   propertyAddress?: string;
+  // Ownership declaration carried over from the application.
+  ownsProperty?: boolean;
+  ownershipMotivation?: string;
+  appliesForOtherProperty?: boolean;
+  motivering?: string;
+  // Validity window of a granted egensotning + revocation bookkeeping.
+  validFrom?: string;
+  validUntil?: string;
+  reminderSentAt?: string;
+  revokedAt?: string;
+  revocationReason?: string;
 }
 
 export interface Decision {
@@ -192,6 +208,7 @@ export type AttachmentCategory =
   | 'COMPETENCE'
   | 'BRANDSKYDDSKONTROLL'
   | 'UTBILDNINGSINTYG'
+  | 'DECISION'
   | 'OTHER';
 
 export interface Attachment {
@@ -242,6 +259,9 @@ export interface EgensotningApplicationInput {
   fastighetsbeteckning: string;
   sotningsobjekt: SotningsobjektInput[];
   propertyAddress?: string;
+  ownsProperty?: boolean;
+  ownershipMotivation?: string;
+  appliesForOtherProperty?: boolean;
   applicantFirstName?: string;
   applicantLastName?: string;
   applicantAddress?: string;
@@ -344,6 +364,11 @@ export async function decisionPreview(
 /** Admin assigns themselves as handläggare for an errand. */
 export async function assignErrand(id: string): Promise<void> {
   await apiService.post(`/admin/errands/${id}/assign`, {});
+}
+
+/** Admin (editor) revokes a granted egensotning, with a required reason. */
+export async function revokeDecision(id: string, reason: string): Promise<void> {
+  await apiService.post(`/admin/errands/${id}/decision/revoke`, { reason });
 }
 
 const baseUrl = () => apiService.defaults.baseURL ?? '/api';

@@ -28,6 +28,7 @@ import { Wrapper } from "@/components/Wrapper";
 import { ErrandStatusChip } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
 import { DecisionPdfCard } from "@/components/DecisionPdfCard";
+import { DecisionValidityInfo } from "@/components/DecisionValidityInfo";
 import { ServiceError } from "@/components/ServiceError";
 import { markSeen } from "@/utils/seenErrands";
 import {
@@ -161,7 +162,12 @@ export function CitizenErrandDetailPage() {
                 )}
               </Paper>
 
-              {isDecided && id && <DecisionPdfCard errandId={id} role='citizen' />}
+              {isDecided && id && (
+                <>
+                  <DecisionPdfCard errandId={id} role='citizen' />
+                  <DecisionValidityInfo details={data.details} />
+                </>
+              )}
 
               {needsSupplement && (
                 <Paper

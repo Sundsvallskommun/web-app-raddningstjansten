@@ -58,6 +58,13 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 const DECISION_FILE_PREFIX = 'Beslut-';
 
 /**
+ * A stored decision document is now tagged category=DECISION; the filename prefix
+ * is kept as a fallback for documents stored before that category existed.
+ */
+const isDecisionAttachment = (a: Attachment): boolean =>
+  a.category === 'DECISION' || (a.fileName ?? '').startsWith(DECISION_FILE_PREFIX);
+
+/**
  * Author used for notes recording the applicant's own actions (updates,
  * kompletteringar). It is the marker that makes a note citizen-visible — the
  * applicant never sees handläggare-authored notes.
@@ -97,6 +104,13 @@ interface ErrandDetail {
   statusHistory: StatusHistoryEntry[];
   decisions: Decision[];
   notes: Note[];
+}
+
+/** A citizen errand-list row, enriched with the egensotning validity window. */
+interface CitizenErrandListItem extends Errand {
+  validFrom?: string;
+  validUntil?: string;
+  revokedAt?: string;
 }
 
 @Controller()
@@ -168,7 +182,7 @@ export class ErrandController {
       stakeholders: this.sanitizeStakeholders(stakeholders),
       // The rendered decision document is surfaced via the decision endpoints,
       // not mixed in with the applicant's uploaded attachments.
-      attachments: attachments.filter(a => !(a.fileName ?? '').startsWith(DECISION_FILE_PREFIX)),
+      attachments: attachments.filter(a => !isDecisionAttachment(a)),
     };
 
     if (audience === 'citizen') {
@@ -232,10 +246,14 @@ export class ErrandController {
     return { id };
   }
 
-  /** Citizen lists their own errands. */
+  /**
+   * Citizen lists their own errands. Decided errands are enriched with the
+   * egensotning validity window (validFrom/validUntil/revokedAt) so "Mina beslut"
+   * can show it without fetching each errand's full detail.
+   */
   @Get('/citizen/errands')
   @UseBefore(authMiddleware)
-  async listMine(@Req() req: Request): Promise<Errand[]> {
+  async listMine(@Req() req: Request): Promise<CitizenErrandListItem[]> {
     const user = req.session.user!;
     if (user.type !== 'citizen' || !user.personNumber) {
       throw new HttpException(403, 'FORBIDDEN');
@@ -244,7 +262,16 @@ export class ErrandController {
       filter: `reporterUserId:'${this.citizenUserId(user)}'`,
       size: 50,
     });
-    return (result.errands ?? []).map(e => this.sanitizeErrand(e));
+    const errands = (result.errands ?? []).map(e => this.sanitizeErrand(e));
+
+    return Promise.all(
+      errands.map(async (e): Promise<CitizenErrandListItem> => {
+        if (!e.id || !TERMINAL_STATUSES.includes(e.status ?? '')) return e;
+        const details = await this.errandService.getDetails(e.id).catch(() => null);
+        if (!details) return e;
+        return { ...e, validFrom: details.validFrom, validUntil: details.validUntil, revokedAt: details.revokedAt };
+      }),
+    );
   }
 
   /** Citizen reads the full detail of their own errand. */
@@ -552,6 +579,34 @@ export class ErrandController {
     return this.streamDecisionPdf(errand, res);
   }
 
+  /**
+   * Revoke a granted egensotning (editor only). Records who revoked it and why
+   * in an audit note; the revocation (revokedAt/revocationReason) is surfaced via
+   * the egensotning details.
+   */
+  @Post('/admin/errands/:id/decision/revoke')
+  @UseBefore(authMiddleware, adminMiddleware, editorMiddleware)
+  async revokeDecision(
+    @Param('id') id: string,
+    @BodyParam('reason') reason: string,
+    @Req() req: Request,
+  ): Promise<{ status: string }> {
+    const trimmed = (reason ?? '').trim();
+    if (!trimmed) {
+      throw new HttpException(400, 'reason is required');
+    }
+    const user = req.session.user!;
+    const revokedBy = user.name || user.username || 'handläggare';
+
+    await this.errandService.revokeEgensotning(id, trimmed);
+    await this.errandService
+      .addNote(id, { author: revokedBy, body: `Återkallade beslutet. Anledning: ${trimmed}` })
+      .catch(e => logger.error(`Could not add revoke note for ${id}: ${(e as Error).message}`));
+
+    logger.info(`Admin revoked egensotning for errand ${id} by ${user.username}`);
+    return { status: 'ok' };
+  }
+
   // ================= Shared =================
 
   private async streamAttachment(id: string, attachmentId: string, res: Response): Promise<Response> {
@@ -585,7 +640,7 @@ export class ErrandController {
   private async streamDecisionPdf(errand: Errand, res: Response): Promise<Response> {
     const id = errand.id!;
     const attachments = await this.errandService.listAttachments(id).catch(() => []);
-    const stored = attachments.find(a => a.id && (a.fileName ?? '').startsWith(DECISION_FILE_PREFIX));
+    const stored = attachments.find(a => a.id && isDecisionAttachment(a));
     if (stored?.id) {
       const r = await this.errandService.getAttachmentFile(id, stored.id);
       return this.sendPdf(res, Buffer.from(r.data), stored.fileName ?? `Beslut-${id}.pdf`);

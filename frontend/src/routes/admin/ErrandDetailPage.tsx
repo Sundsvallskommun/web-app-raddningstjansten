@@ -28,6 +28,8 @@ import { ErrandStatusChip, statusLabel } from "@/components/ErrandStatusChip";
 import { StatusStepper } from "@/components/StatusStepper";
 import { DecisionDialog } from "@/components/DecisionDialog";
 import { DecisionPdfCard } from "@/components/DecisionPdfCard";
+import { DecisionValidityInfo } from "@/components/DecisionValidityInfo";
+import { RevokeDecisionDialog } from "@/components/RevokeDecisionDialog";
 import { ServiceError } from "@/components/ServiceError";
 import { markSeen } from "@/utils/seenErrands";
 import {
@@ -78,6 +80,7 @@ export function ErrandDetailPage() {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   // null = dialog closed; true = approving; false = rejecting.
   const [decisionApproved, setDecisionApproved] = useState<boolean | null>(null);
+  const [revokeOpen, setRevokeOpen] = useState(false);
 
   // Clear the "updated" badge whenever fresh data arrives (incl. polling).
   useEffect(() => {
@@ -256,7 +259,24 @@ export function ErrandDetailPage() {
                 )}
               </Paper>
 
-              {isDecided && id && <DecisionPdfCard errandId={id} role='admin' />}
+              {isDecided && id && (
+                <>
+                  <DecisionPdfCard errandId={id} role='admin' />
+                  <DecisionValidityInfo details={data.details} />
+                  {status === "DECIDED" && !readOnly && !data.details?.revokedAt && (
+                    <Box>
+                      <Button
+                        variant='outlined'
+                        color='error'
+                        startIcon={<CancelOutlined />}
+                        onClick={() => setRevokeOpen(true)}
+                      >
+                        Återkalla beslut
+                      </Button>
+                    </Box>
+                  )}
+                </>
+              )}
 
               <Typography variant='h6'>Sotningsobjekt</Typography>
               {data.sotningsobjekt.length === 0 ? (
@@ -452,6 +472,15 @@ export function ErrandDetailPage() {
                 decisionApproved ? "Ärendet godkändes." : "Ärendet avslogs.",
               )
             }
+          />
+        )}
+
+        {id && (
+          <RevokeDecisionDialog
+            errandId={id}
+            open={revokeOpen}
+            onClose={() => setRevokeOpen(false)}
+            onRevoked={() => setActionMsg("Beslutet återkallades.")}
           />
         )}
       </>

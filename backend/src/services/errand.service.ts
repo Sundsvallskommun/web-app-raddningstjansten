@@ -11,6 +11,7 @@ import {
   Note,
   Notification,
   ProcessMessageRequest,
+  RevokeRequest,
   Sotningsobjekt,
   Stakeholder,
   StatusHistoryEntry,
@@ -134,7 +135,7 @@ export class ErrandService {
     await this.addAttachment(
       errandId,
       { buffer: pdf, originalname: `Beslut-${errandNumber}.pdf`, mimetype: 'application/pdf' },
-      'OTHER',
+      'DECISION',
     );
   }
 
@@ -183,6 +184,11 @@ export class ErrandService {
   /** Replace the egensotning details (personnummer, fastighet, adress). */
   public async putEgensotningDetails(errandId: string, details: Partial<EgensotningDetails>): Promise<void> {
     await this.api.put(`${this.base()}/${errandId}/egensotning-details`, details);
+  }
+
+  /** Revoke a granted egensotning (sets revokedAt/revocationReason server-side). */
+  public async revokeEgensotning(errandId: string, reason: string): Promise<void> {
+    await this.api.post<void, RevokeRequest>(`${this.base()}/${errandId}/egensotning-details/revoke`, { reason });
   }
 
   public async updateStakeholder(errandId: string, stakeholderId: string, patch: Partial<Stakeholder>): Promise<void> {

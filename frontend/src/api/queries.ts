@@ -8,6 +8,7 @@ import {
   fetchCitizenErrand,
   fetchEngagements,
   fetchMyErrands,
+  revokeDecision,
   submitApplication,
   supplementErrand,
   updateErrand,
@@ -118,6 +119,17 @@ export function useAssignErrand(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => assignErrand(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminErrand(id) });
+      qc.invalidateQueries({ queryKey: ['adminErrands'] });
+    },
+  });
+}
+
+export function useRevokeDecision(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) => revokeDecision(id, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.adminErrand(id) });
       qc.invalidateQueries({ queryKey: ['adminErrands'] });
