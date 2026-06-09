@@ -27,6 +27,7 @@ import { apiService } from "@/api/api-service";
 import { useAuth } from "@/auth/AuthContext";
 import Logo from "@/assets/logo-red.svg?react";
 import bgImage from "@/assets/background.jpg";
+import DemoInfoDialog from "@/components/DemoInfoDialog";
 
 const POLL_INTERVAL_MS = 1000;
 const POLL_TIMEOUT_MS = 30000;
@@ -222,8 +223,11 @@ export function CitizenLoginPage() {
           sx={{
             minWidth: isMd ? "35%" : "100%",
             display: "flex",
+            flexDirection: "column",
             justifyContent: "center",
+            alignItems: "center",
             px: 2,
+            gap: 2,
           }}
         >
           <Card variant='outlined' sx={{ display: "flex", p: 2 }} elevation={2}>
@@ -243,6 +247,8 @@ export function CitizenLoginPage() {
               </Stack>
             </CardContent>
           </Card>
+
+          <DemoInfoDialog />
 
           <Dialog open={open} onClose={closeDialog} maxWidth='xs' fullWidth>
             <DialogTitle>Logga in med BankID (mock)</DialogTitle>

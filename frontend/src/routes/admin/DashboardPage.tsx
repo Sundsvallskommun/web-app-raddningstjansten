@@ -2,6 +2,7 @@ import { Box, Button, Paper, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
+import DemoAlert from "@/components/DemoAlert";
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
@@ -26,13 +27,17 @@ export function AdminDashboardPage() {
           Din översikt
         </Typography>
         <Typography color='text.secondary' gutterBottom>
-          {`Inloggad som ${user?.name ?? ''}`}
+          {`Inloggad som ${user?.name ?? ""}`}
         </Typography>
         <Box sx={{ mt: 2 }}>
-          <Button variant='contained' onClick={() => navigate('/admin/errands')}>
+          <Button
+            variant='contained'
+            onClick={() => navigate("/admin/errands")}
+          >
             Visa inkomna ärenden
           </Button>
         </Box>
+        <DemoAlert title='Information' />
       </Paper>
     </Wrapper>
   );
