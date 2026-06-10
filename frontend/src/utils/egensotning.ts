@@ -29,36 +29,56 @@ type Audience = 'citizen' | 'admin';
 // sees why their errand is under review — to them it is simply "being handled".
 const ADMIN_REASON_TEXT: Record<string, string> = {
   NOT_REGISTERED: 'den sökande inte är folkbokförd på fastigheten',
+  OWNER_NOT_REGISTERED: 'den sökande inte är folkbokförd på fastigheten',
   REAPPLICATION_REJECTED: 'en tidigare ansökan avslogs',
   REAPPLICATION_ONGOING: 'en tidigare ansökan redan pågår',
+  ACTIVE_PERMIT_EXISTS: 'det redan finns ett aktivt tillstånd',
 };
 
-/** Friendly Swedish message describing the current verification outcome. */
+/**
+ * Friendly message describing the errand's current state. Driven by the actual
+ * status, not by `lastOutcome` — `lastOutcome === 'AUTO_APPROVE'` is only the
+ * verify routing result; the final decision still depends on the document
+ * validation (Eneo). So an "AUTO_APPROVE" errand that is still in review is shown
+ * as "handläggs", never as approved. A decided errand returns null (its decision
+ * card tells the story).
+ */
 export function outcomeMessage(
-  details?: EgensotningDetails | null,
+  details: EgensotningDetails | null | undefined,
+  status: string | undefined,
   audience: Audience = 'citizen',
 ): { severity: Severity; text: string } | null {
-  if (!details?.lastOutcome) return null;
-  switch (details.lastOutcome) {
-    case 'AUTO_APPROVE':
-      return { severity: 'success', text: 'Ansökan uppfyller kraven och har godkänts automatiskt.' };
-    case 'NEEDS_SUPPLEMENT':
+  if (!details || !status) return null;
+  if (status === 'DECIDED' || status === 'REJECTED' || status === 'REVOKED') return null;
+
+  if (status === 'AWAITING_SUPPLEMENTATION') {
+    return {
+      severity: 'warning',
+      text: 'Något saknas i ansökan (t.ex. en bilaga). En komplettering behövs.',
+    };
+  }
+
+  if (status === 'UNDER_MANUAL_REVIEW') {
+    if (audience === 'citizen') {
+      return {
+        severity: 'info',
+        text: 'Din ansökan handläggs. Handläggaren kan behöva kontrollera kompletterande uppgifter, till exempel om fastigheten.',
+      };
+    }
+    // Document validation failed (Eneo/LLM) — show its actual reasoning if present.
+    if (details.documentsValid === false) {
+      const detail = details.documentValidationDetail?.trim();
       return {
         severity: 'warning',
-        text: 'Något saknas i ansökan (t.ex. en bilaga). En komplettering behövs.',
+        text: detail
+          ? `Dokumentvalideringen (Eneo) underkändes: ${detail}`
+          : 'Granskas manuellt — dokumenten kunde inte verifieras automatiskt mot sökanden.',
       };
-    case 'NEEDS_MANUAL_REVIEW': {
-      if (audience === 'citizen') {
-        // Neutral, non-revealing message — the applicant only sees "handläggs".
-        return {
-          severity: 'info',
-          text: 'Din ansökan handläggs. Handläggaren kan behöva kontrollera kompletterande uppgifter, till exempel om fastigheten.',
-        };
-      }
-      const reason = ADMIN_REASON_TEXT[details.manualReviewReason ?? ''] ?? 'ärendet kräver en manuell bedömning';
-      return { severity: 'info', text: `Ansökan granskas manuellt eftersom ${reason}.` };
     }
-    default:
-      return null;
+    const reason = ADMIN_REASON_TEXT[details.manualReviewReason ?? ''] ?? 'ärendet kräver en manuell bedömning';
+    return { severity: 'info', text: `Ansökan granskas manuellt eftersom ${reason}.` };
   }
+
+  // REGISTERED / NEW / ONGOING — verification/processing still running.
+  return { severity: 'info', text: 'Din ansökan behandlas.' };
 }

@@ -7,20 +7,22 @@ interface StatusMeta {
   color: ChipColor;
 }
 
+// Labels follow the modelled process steps so the chip and the process history
+// (StatusStepper) are traceable to a specific step. The engine owns the status.
 const STATUS: Record<string, StatusMeta> = {
-  REGISTERED: { label: "Inskickad", color: "info" },
+  REGISTERED: { label: "Inkommen", color: "info" },
   NEW: { label: "Ny", color: "info" },
+  // Eneo/AI document review runs as a service task between Inkommen and routing;
+  // the engine does not currently emit a distinct status for it.
+  UNDER_REVIEW: { label: "Under AI-granskning", color: "info" },
   ONGOING: { label: "Pågående", color: "info" },
-  UNDER_MANUAL_REVIEW: {
-    label: "Behandlas",
-    color: "warning",
-  },
+  UNDER_MANUAL_REVIEW: { label: "Manuell granskning", color: "warning" },
   AWAITING_SUPPLEMENTATION: {
-    label: "Väntar på komplettering",
+    label: "Komplettering krävs",
     color: "warning",
   },
-  DECIDED: { label: "Beslutad", color: "success" },
-  APPROVED: { label: "Godkänd", color: "success" },
+  DECIDED: { label: "Beviljad", color: "success" },
+  APPROVED: { label: "Beviljad", color: "success" },
   REJECTED: { label: "Avslagen", color: "error" },
   REVOKED: { label: "Återkallad", color: "default" },
 };
@@ -35,9 +37,10 @@ const CITIZEN_STATUS_REMAP: Record<string, string> = {
   UNDER_MANUAL_REVIEW: "ONGOING",
 };
 
-// For a handläggare, an errand still awaiting pickup (no assignee) reads as "Ny"
-// rather than its internal handling status. Status-based + assignment-aware.
-const ADMIN_NEW_WHEN_UNASSIGNED = new Set(["UNDER_MANUAL_REVIEW"]);
+// Admin triage on the manual-review path: while no handläggare has taken the
+// errand it reads as "Ny" (needs manual review); once a handläggare is on it it
+// reads as "Manuell granskning". Assignment-aware.
+const ADMIN_MANUAL_STATUSES = new Set(["UNDER_MANUAL_REVIEW", "ONGOING"]);
 
 /** Small status chip for an errand with Swedish labels. */
 export function ErrandStatusChip({
@@ -50,13 +53,12 @@ export function ErrandStatusChip({
   /** Whether a handläggare is assigned (admin view only). */
   assigned?: boolean;
 }) {
-  if (
-    audience === "admin" &&
-    assigned === false &&
-    status &&
-    ADMIN_NEW_WHEN_UNASSIGNED.has(status)
-  ) {
-    return <Chip label='Ny' size='small' color='info' variant='outlined' />;
+  if (audience === "admin" && status && ADMIN_MANUAL_STATUSES.has(status)) {
+    return assigned ? (
+      <Chip label='Manuell granskning' size='small' color='warning' variant='outlined' />
+    ) : (
+      <Chip label='Ny' size='small' color='info' variant='outlined' />
+    );
   }
 
   const effective =

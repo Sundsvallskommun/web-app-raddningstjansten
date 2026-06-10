@@ -171,6 +171,12 @@ export interface EgensotningDetails {
   lastOutcome?: string;
   manualReviewReason?: string;
   lastVerifiedAt?: string;
+  supplementNeeds?: string[];
+  // Eneo (LLM) document validation (on the AUTO_APPROVE branch). The detail is
+  // handläggare-only (the BFF strips it from citizen responses).
+  documentsValid?: boolean;
+  documentValidationDetail?: string;
+  documentValidatedAt?: string;
   personnummer?: string;
   fastighetsbeteckning?: string;
   propertyAddress?: string;

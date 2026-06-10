@@ -178,8 +178,10 @@ export class ErrandController {
     if (audience === 'citizen') {
       // Hide who is handling the errand from the applicant. Only the applicant's
       // own notes (their updates/kompletteringar) are shown — never handläggare notes.
+      // The Eneo validation reasoning is for the handläggare, not the applicant.
       return {
         ...common,
+        details: common.details ? { ...common.details, documentValidationDetail: undefined } : common.details,
         errand: { ...this.sanitizeErrand(errand), assignedUserId: undefined },
         statusHistory: statusHistory.map(h => ({ ...h, changedBy: undefined })),
         decisions: decisions.map(d => ({ ...d, createdBy: undefined })),

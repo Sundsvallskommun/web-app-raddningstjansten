@@ -130,15 +130,13 @@ export function ErrandDetailPage() {
     };
   }, [decisionPending, isDecided, refetch]);
 
-  const outcome = data ? outcomeMessage(data.details, "admin") : null;
-  const inReview = data?.errand.status === "UNDER_MANUAL_REVIEW";
+  // outcomeMessage is now status-driven (returns null once decided), so it can be
+  // shown whenever present.
+  const outcome = data ? outcomeMessage(data.details, data.errand.status, "admin") : null;
   // A decision can only be made once a handläggare has taken the errand on
   // (assigned + status "Pågående").
   const canDecide = !!data?.errand.assignedUserId && status === "ONGOING";
-  // The "granskas manuellt" message is only relevant while the errand is
-  // actually in manual review — hide it once it has moved on (e.g. decided).
-  const showOutcome =
-    !!outcome && (inReview || data?.details?.lastOutcome !== "NEEDS_MANUAL_REVIEW");
+  const showOutcome = !!outcome;
 
   const audit: AuditItem[] = data
     ? [

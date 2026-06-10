@@ -88,7 +88,7 @@ export function CitizenErrandDetailPage() {
     }
   }
 
-  const outcome = data ? outcomeMessage(data.details) : null;
+  const outcome = data ? outcomeMessage(data.details, data.errand.status) : null;
   const needsSupplement = data?.errand.status === "AWAITING_SUPPLEMENTATION";
   const isDecided =
     data?.errand.status === "DECIDED" || data?.errand.status === "REJECTED";

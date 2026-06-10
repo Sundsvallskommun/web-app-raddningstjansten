@@ -131,8 +131,13 @@ export interface EgensotningDetails {
   registeredAtProperty?: boolean;
   reapplicationOk?: boolean;
   lastOutcome?: string; // AUTO_APPROVE | NEEDS_MANUAL_REVIEW | NEEDS_SUPPLEMENT
-  manualReviewReason?: string; // NOT_REGISTERED | REAPPLICATION_REJECTED | REAPPLICATION_ONGOING
+  manualReviewReason?: string; // NOT_REGISTERED | OWNER_NOT_REGISTERED | REAPPLICATION_* | ACTIVE_PERMIT_EXISTS
   lastVerifiedAt?: string;
+  supplementNeeds?: string[]; // what still needs to be supplemented
+  // Eneo (LLM) document validation, on the AUTO_APPROVE branch.
+  documentsValid?: boolean;
+  documentValidationDetail?: string; // Eneo's reasoning (for the handläggare)
+  documentValidatedAt?: string;
   // Validity window of a granted egensotning + revocation/reminder bookkeeping.
   validFrom?: string;
   validUntil?: string;
