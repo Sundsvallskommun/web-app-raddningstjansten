@@ -72,10 +72,13 @@ export class ErrandService {
 
   // ---- Reads ----
 
-  public async findErrands(params: { filter?: string; page?: number; size?: number; sort?: string }): Promise<FindErrandsResponse> {
+  public async findErrands(params: { filter?: string; q?: string; page?: number; size?: number; sort?: string }): Promise<FindErrandsResponse> {
+    // axios serialises `params` with encodeURIComponent (UTF-8), which is what
+    // rtj/Tomcat expects — sending Latin-1 here would 500 on å/ä/ö.
     const res = await this.api.get<FindErrandsResponse>(this.base(), {
       params: {
         ...(params.filter ? { filter: params.filter } : {}),
+        ...(params.q ? { q: params.q } : {}),
         page: params.page ?? 0,
         size: params.size ?? 20,
         ...(params.sort ? { sort: params.sort } : {}),

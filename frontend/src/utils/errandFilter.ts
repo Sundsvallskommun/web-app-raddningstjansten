@@ -1,5 +1,3 @@
-import type { Errand } from "@/api/api-service";
-
 export type Audience = "citizen" | "admin";
 
 export interface ErrandFilterState {
@@ -52,37 +50,28 @@ export function statusOptions(audience: Audience): StatusOption[] {
   ];
 }
 
-const withinDateRange = (created: string | undefined, fromStr: string, toStr: string): boolean => {
-  if (!fromStr && !toStr) return true;
-  if (!created) return false;
-  const t = new Date(created).getTime();
-  if (Number.isNaN(t)) return false;
-  if (fromStr && t < new Date(`${fromStr}T00:00:00`).getTime()) return false;
-  if (toStr && t > new Date(`${toStr}T23:59:59.999`).getTime()) return false;
-  return true;
-};
+/** Query params sent to the BFF, which builds the server-side (rtj) filter. */
+export interface ErrandQueryParams {
+  status?: string; // CSV of raw statuses
+  title?: string;
+  applicant?: string;
+  from?: string; // YYYY-MM-DD
+  to?: string; // YYYY-MM-DD
+}
 
 /**
- * Client-side filtering of an errand list by title, status, applicant email and
- * submission-date range. Client-side because the errand API currently 500s on any
- * non-ASCII character (å/ä/ö) in its `filter`/`q` params, so server-side text
- * search is unreliable; status/date are matched here too for one uniform path.
+ * Convert the filter bar's state into BFF query params. The status option is
+ * resolved here to its raw statuses (audience-specific grouping stays on the
+ * client). Sent via axios `params`, i.e. UTF-8 (encodeURIComponent) — never
+ * Latin-1/escape(), which is what made the errand API 500 on å/ä/ö.
  */
-export function applyErrandFilters<T extends Errand>(
-  errands: T[],
-  f: ErrandFilterState,
-  audience: Audience,
-): T[] {
-  const title = f.title.trim().toLowerCase();
-  const applicant = f.applicant.trim().toLowerCase();
+export function toErrandQueryParams(f: ErrandFilterState, audience: Audience): ErrandQueryParams {
   const opt = f.status ? statusOptions(audience).find(o => o.value === f.status) : undefined;
-  const statusSet = opt ? new Set(opt.statuses) : null;
-
-  return errands.filter(e => {
-    if (title && !(e.title ?? "").toLowerCase().includes(title)) return false;
-    if (applicant && !(e.applicantEmail ?? "").toLowerCase().includes(applicant)) return false;
-    if (statusSet && !(e.status && statusSet.has(e.status))) return false;
-    if (!withinDateRange(e.created, f.dateFrom, f.dateTo)) return false;
-    return true;
-  });
+  const params: ErrandQueryParams = {};
+  if (f.title.trim()) params.title = f.title.trim();
+  if (f.applicant.trim()) params.applicant = f.applicant.trim();
+  if (opt) params.status = opt.statuses.join(",");
+  if (f.dateFrom) params.from = f.dateFrom;
+  if (f.dateTo) params.to = f.dateTo;
+  return params;
 }

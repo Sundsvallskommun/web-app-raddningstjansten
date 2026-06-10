@@ -19,22 +19,21 @@ import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { ErrandFilters } from '@/components/ErrandFilters';
 import { ServiceError } from '@/components/ServiceError';
-import { applyErrandFilters, emptyErrandFilters } from '@/utils/errandFilter';
+import { emptyErrandFilters, hasActiveFilters, toErrandQueryParams } from '@/utils/errandFilter';
+import { useDebouncedValue } from '@/utils/useDebouncedValue';
 import { moduleBySlug } from '@/utils/modules';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '—');
 
-// Fetch the full set once and filter/paginate on the client (the errand API 500s
-// on non-ASCII text search, so server-side filtering is unreliable). Fine at POC
-// scale; revisit with server-side paging if the dataset grows large.
+// rtj does the filtering (title/status/applicant/date); we fetch the matching set
+// and paginate it on the client. Generous size — fine at POC scale; switch to
+// server paging if the dataset grows large.
 const FETCH_SIZE = 200;
 
 export function AdminErrandsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data, isLoading: loading, isError, error, refetch, isFetching } = useAdminErrands(0, FETCH_SIZE);
-  const all = data?.errands ?? [];
 
   const [searchParams] = useSearchParams();
   const activeModule = moduleBySlug(searchParams.get('module'));
@@ -43,13 +42,16 @@ export function AdminErrandsPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
 
-  // Scope to the selected module (errand type) first, then apply the filter bar.
-  const scoped = useMemo(
-    () => (activeModule ? all.filter(e => e.typeSlug === activeModule.typeSlug) : all),
-    [all, activeModule],
+  // Debounced filter bar + selected module → BFF query params (server-side filter).
+  const debouncedFilters = useDebouncedValue(filters, 300);
+  const queryParams = useMemo(
+    () => ({ ...toErrandQueryParams(debouncedFilters, 'admin'), typeSlug: activeModule?.typeSlug }),
+    [debouncedFilters, activeModule],
   );
-  const filtered = useMemo(() => applyErrandFilters(scoped, filters, 'admin'), [scoped, filters]);
+  const { data, isLoading: loading, isError, error, refetch, isFetching } = useAdminErrands(0, FETCH_SIZE, queryParams);
+  const filtered = data?.errands ?? [];
   const pageRows = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const filtersActive = hasActiveFilters(filters) || !!activeModule;
 
   // Reset to the first page whenever the filter or module changes.
   useEffect(() => {
@@ -57,8 +59,8 @@ export function AdminErrandsPage() {
   }, [filters, activeModule?.slug]);
 
   useEffect(() => {
-    baselineSeen(all);
-  }, [all]);
+    baselineSeen(filtered);
+  }, [filtered]);
 
   function logout() {
     window.location.href = '/api/saml/logout';
@@ -88,12 +90,6 @@ export function AdminErrandsPage() {
           <Paper>
             <ServiceError error={error} onRetry={() => refetch()} isRetrying={isFetching} />
           </Paper>
-        ) : all.length === 0 ? (
-          <Paper>
-            <Typography color="text.secondary" sx={{ p: 3 }}>
-              Inga ärenden ännu.
-            </Typography>
-          </Paper>
         ) : (
           <>
             <Paper sx={{ p: 2, mb: 2 }}>
@@ -102,7 +98,7 @@ export function AdminErrandsPage() {
             <Paper>
               {filtered.length === 0 ? (
                 <Typography color="text.secondary" sx={{ p: 3 }}>
-                  Inga ärenden matchar filtret.
+                  {filtersActive ? 'Inga ärenden matchar filtret.' : 'Inga ärenden ännu.'}
                 </Typography>
               ) : (
                 <>

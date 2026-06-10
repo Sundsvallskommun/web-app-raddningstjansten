@@ -16,6 +16,7 @@ import {
   type ApplicationAttachments,
   type EgensotningApplicationInput,
   type ErrandDetail,
+  type ErrandListParams,
 } from './api-service';
 
 /** Centralised query keys so invalidation stays consistent. */
@@ -40,8 +41,12 @@ export function useEngagements() {
   return useQuery({ queryKey: qk.engagements, queryFn: fetchEngagements, staleTime: 5 * 60_000 });
 }
 
-export function useMyErrands() {
-  return useQuery({ queryKey: qk.myErrands, queryFn: fetchMyErrands });
+export function useMyErrands(params: ErrandListParams = {}) {
+  return useQuery({
+    queryKey: [...qk.myErrands, params],
+    queryFn: () => fetchMyErrands(params),
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useCitizenConfig() {
@@ -57,10 +62,10 @@ export function useCitizenErrand(id?: string) {
   });
 }
 
-export function useAdminErrands(page: number, size: number) {
+export function useAdminErrands(page: number, size: number, params: ErrandListParams = {}) {
   return useQuery({
-    queryKey: qk.adminErrands(page, size),
-    queryFn: () => fetchAdminErrands(page, size),
+    queryKey: [...qk.adminErrands(page, size), params],
+    queryFn: () => fetchAdminErrands(page, size, params),
     placeholderData: keepPreviousData,
   });
 }

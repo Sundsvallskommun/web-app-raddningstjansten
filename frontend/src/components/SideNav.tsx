@@ -23,10 +23,10 @@ import {
   NoteAddOutlined,
 } from "@mui/icons-material";
 import { ERRAND_MODULES } from "@/utils/modules";
+import { NAV_COLLAPSED_WIDTH, NAV_EXPANDED_WIDTH, useNav } from "./NavContext";
 
-const EXPANDED_WIDTH = 240;
-const COLLAPSED_WIDTH = 68;
-const COLLAPSE_KEY = "rtj-nav-collapsed";
+const EXPANDED_WIDTH = NAV_EXPANDED_WIDTH;
+const COLLAPSED_WIDTH = NAV_COLLAPSED_WIDTH;
 
 type NavChild = { label: string; path: string };
 type NavItem =
@@ -219,24 +219,7 @@ export function SideNav({
   onMobileClose: () => void;
 }) {
   const items = buildItems(navType);
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(COLLAPSE_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-
-  const toggle = () =>
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+  const { collapsed, toggle } = useNav();
 
   const width = collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
 

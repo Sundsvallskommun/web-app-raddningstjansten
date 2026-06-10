@@ -37,6 +37,7 @@ import {
 } from '@/data-contracts/rtj-management/data-contracts';
 
 import { maskPersonNumber, maskReporterUserId } from '@utils/util';
+import { buildErrandFilter, parseStatuses } from '@utils/errand-filter';
 import { logger } from '@utils/logger';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -252,15 +253,28 @@ export class ErrandController {
    */
   @Get('/citizen/errands')
   @UseBefore(authMiddleware)
-  async listMine(@Req() req: Request): Promise<CitizenErrandListItem[]> {
+  async listMine(
+    @Req() req: Request,
+    @QueryParam('status') status?: string,
+    @QueryParam('title') title?: string,
+    @QueryParam('from') from?: string,
+    @QueryParam('to') to?: string,
+    @QueryParam('typeSlug') typeSlug?: string,
+  ): Promise<CitizenErrandListItem[]> {
     const user = req.session.user!;
     if (user.type !== 'citizen' || !user.personNumber) {
       throw new HttpException(403, 'FORBIDDEN');
     }
-    const result = await this.errandService.findErrands({
-      filter: `reporterUserId:'${this.citizenUserId(user)}'`,
-      size: 50,
+    // Always scoped to the citizen's own errands; the rest is optional filtering.
+    const filter = buildErrandFilter({
+      reporterUserId: this.citizenUserId(user),
+      statuses: parseStatuses(status),
+      title,
+      from,
+      to,
+      typeSlug,
     });
+    const result = await this.errandService.findErrands({ filter, size: 50 });
     const errands = (result.errands ?? []).map(e => this.sanitizeErrand(e));
 
     return Promise.all(
@@ -357,8 +371,25 @@ export class ErrandController {
 
   @Get('/admin/errands')
   @UseBefore(authMiddleware, adminMiddleware)
-  async listAll(@QueryParam('page') page = 0, @QueryParam('size') size = 20) {
-    const result = await this.errandService.findErrands({ page, size });
+  async listAll(
+    @QueryParam('page') page = 0,
+    @QueryParam('size') size = 200,
+    @QueryParam('status') status?: string,
+    @QueryParam('title') title?: string,
+    @QueryParam('applicant') applicant?: string,
+    @QueryParam('from') from?: string,
+    @QueryParam('to') to?: string,
+    @QueryParam('typeSlug') typeSlug?: string,
+  ) {
+    const filter = buildErrandFilter({
+      statuses: parseStatuses(status),
+      title,
+      applicant,
+      from,
+      to,
+      typeSlug,
+    });
+    const result = await this.errandService.findErrands({ filter, page, size });
     return { ...result, errands: (result.errands ?? []).map(e => this.sanitizeErrand(e)) };
   }
 

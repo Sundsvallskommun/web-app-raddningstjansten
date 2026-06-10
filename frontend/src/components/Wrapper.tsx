@@ -22,6 +22,12 @@ import { ProfileDialog } from "./ProfileDialog";
 import { SideNav } from "./SideNav";
 import { Footer } from "./Footer";
 import { SessionTimeout } from "./SessionTimeout";
+import {
+  NavProvider,
+  useNav,
+  NAV_COLLAPSED_WIDTH,
+  NAV_EXPANDED_WIDTH,
+} from "./NavContext";
 import Logo from "@/assets/logo-red.svg?react";
 import { CONTENT_MAX_WIDTH } from "@/theme";
 
@@ -42,7 +48,13 @@ interface WrapperProps {
   navType?: "citizen" | "admin";
 }
 
-export const Wrapper = ({
+export const Wrapper = (props: WrapperProps) => (
+  <NavProvider>
+    <WrapperContent {...props} />
+  </NavProvider>
+);
+
+const WrapperContent = ({
   title,
   logout,
   color,
@@ -54,6 +66,12 @@ export const Wrapper = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [open, setOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { collapsed } = useNav();
+
+  // Width the sidebar occupies on desktop — used to push the AppBar/Footer inner
+  // content right so they line up with the centered content container (which
+  // lives in the space after the sidebar). 0 on mobile (the nav is an overlay).
+  const navWidth = showNav ? (collapsed ? NAV_COLLAPSED_WIDTH : NAV_EXPANDED_WIDTH) : 0;
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -76,25 +94,29 @@ export const Wrapper = ({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <AppBar position='sticky' color={color}>
-        <Toolbar disableGutters sx={{ ...contentSx, width: "100%" }}>
-          {showNav && (
-            <IconButton
-              color='inherit'
-              edge='start'
-              aria-label='Öppna meny'
-              onClick={() => setMobileNavOpen(true)}
-              sx={{ mr: 1, display: { md: "none" } }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          <Box sx={{ display: "flex", mr: 1.5 }}>
-            <Logo width={"28px"} />
-          </Box>
-          <Typography variant='h6' sx={{ flexGrow: 1 }}>
-            {title}
-          </Typography>
-          <div>
+        <Toolbar
+          disableGutters
+          sx={{ pl: { md: `${navWidth}px` }, transition: "padding-left .2s" }}
+        >
+          <Box sx={{ ...contentSx, width: "100%", display: "flex", alignItems: "center" }}>
+            {showNav && (
+              <IconButton
+                color='inherit'
+                edge='start'
+                aria-label='Öppna meny'
+                onClick={() => setMobileNavOpen(true)}
+                sx={{ mr: 1, display: { md: "none" } }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Box sx={{ display: "flex", mr: 1.5 }}>
+              <Logo width={"28px"} />
+            </Box>
+            <Typography variant='h6' sx={{ flexGrow: 1 }}>
+              {title}
+            </Typography>
+            <div>
             <IconButton
               size='large'
               aria-label='account of current user'
@@ -133,7 +155,8 @@ export const Wrapper = ({
                 <ListItemText>Logga ut</ListItemText>
               </MenuItem>
             </Menu>
-          </div>
+            </div>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box sx={{ display: "flex", flexGrow: 1, width: "100%" }}>
@@ -157,7 +180,7 @@ export const Wrapper = ({
           </Container>
         </Box>
       </Box>
-      <Footer />
+      <Footer offsetLeft={navWidth} />
       <ProfileDialog
         onClose={handleCloseProfileDialog}
         open={open}

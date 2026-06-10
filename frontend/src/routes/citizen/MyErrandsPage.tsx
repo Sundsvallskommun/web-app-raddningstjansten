@@ -21,7 +21,8 @@ import { Wrapper } from '@/components/Wrapper';
 import { ErrandStatusChip } from '@/components/ErrandStatusChip';
 import { ErrandFilters } from '@/components/ErrandFilters';
 import { ServiceError } from '@/components/ServiceError';
-import { applyErrandFilters, emptyErrandFilters } from '@/utils/errandFilter';
+import { emptyErrandFilters, hasActiveFilters, toErrandQueryParams } from '@/utils/errandFilter';
+import { useDebouncedValue } from '@/utils/useDebouncedValue';
 import { moduleBySlug } from '@/utils/modules';
 import { baselineSeen, isUpdated } from '@/utils/seenErrands';
 
@@ -30,19 +31,22 @@ const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('sv-SE') : '
 export function MyErrandsPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
-  const { data: errands = [], isLoading: loading, isError, error, refetch, isFetching } = useMyErrands();
   const [searchParams] = useSearchParams();
   const activeModule = moduleBySlug(searchParams.get('module'));
   const [filters, setFilters] = useState(emptyErrandFilters);
-  const scoped = useMemo(
-    () => (activeModule ? errands.filter(e => e.typeSlug === activeModule.typeSlug) : errands),
-    [errands, activeModule],
+
+  // Debounced filter bar + selected module → BFF query params (server-side filter).
+  const debouncedFilters = useDebouncedValue(filters, 300);
+  const queryParams = useMemo(
+    () => ({ ...toErrandQueryParams(debouncedFilters, 'citizen'), typeSlug: activeModule?.typeSlug }),
+    [debouncedFilters, activeModule],
   );
-  const filtered = useMemo(() => applyErrandFilters(scoped, filters, 'citizen'), [scoped, filters]);
+  const { data: filtered = [], isLoading: loading, isError, error, refetch, isFetching } = useMyErrands(queryParams);
+  const filtersActive = hasActiveFilters(filters) || !!activeModule;
 
   useEffect(() => {
-    baselineSeen(errands);
-  }, [errands]);
+    baselineSeen(filtered);
+  }, [filtered]);
 
   async function logout() {
     await apiService.post('/citizen/logout');
@@ -76,10 +80,6 @@ export function MyErrandsPage() {
             </Box>
           ) : isError ? (
             <ServiceError error={error} onRetry={() => refetch()} isRetrying={isFetching} />
-          ) : errands.length === 0 ? (
-            <Typography color="text.secondary" sx={{ p: 2 }}>
-              Du har inga inskickade ärenden ännu.
-            </Typography>
           ) : (
             <>
               <Box sx={{ mb: 2 }}>
@@ -87,7 +87,7 @@ export function MyErrandsPage() {
               </Box>
               {filtered.length === 0 ? (
                 <Typography color="text.secondary" sx={{ p: 1 }}>
-                  Inga ärenden matchar filtret.
+                  {filtersActive ? 'Inga ärenden matchar filtret.' : 'Du har inga inskickade ärenden ännu.'}
                 </Typography>
               ) : (
                 <Table>

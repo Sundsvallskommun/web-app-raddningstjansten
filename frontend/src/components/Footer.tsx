@@ -7,7 +7,7 @@ import Logo from "@/assets/logo-red.svg?react";
  * with a thin red accent line on top, the alert symbol and "Räddningstjänsten".
  * Rendered by Wrapper, so it only appears on logged-in pages.
  */
-export function Footer() {
+export function Footer({ offsetLeft = 0 }: { offsetLeft?: number }) {
   return (
     <Box
       component='footer'
@@ -16,6 +16,10 @@ export function Footer() {
         color: "#ffffff",
         borderTop: "4px solid",
         borderColor: "primary.main",
+        // Shift the inner content right by the sidebar width so it lines up with
+        // the page content; the bar itself stays full-width.
+        pl: { md: `${offsetLeft}px` },
+        transition: "padding-left .2s",
       }}
     >
       <Box

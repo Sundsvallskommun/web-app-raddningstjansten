@@ -310,8 +310,18 @@ export async function submitApplication(
   return data;
 }
 
-export async function fetchMyErrands(): Promise<Errand[]> {
-  const { data } = await apiService.get<Errand[]>('/citizen/errands');
+/** Server-side filter/search params for the errand lists (built from the filter bar). */
+export interface ErrandListParams {
+  status?: string; // CSV of raw statuses
+  title?: string;
+  applicant?: string;
+  from?: string; // YYYY-MM-DD
+  to?: string; // YYYY-MM-DD
+  typeSlug?: string;
+}
+
+export async function fetchMyErrands(params: ErrandListParams = {}): Promise<Errand[]> {
+  const { data } = await apiService.get<Errand[]>('/citizen/errands', { params });
   return data;
 }
 
@@ -321,8 +331,14 @@ export async function fetchCitizenConfig(): Promise<{ validityWarningDays: numbe
   return data;
 }
 
-export async function fetchAdminErrands(page = 0, size = 20): Promise<FindErrandsResponse> {
-  const { data } = await apiService.get<FindErrandsResponse>('/admin/errands', { params: { page, size } });
+export async function fetchAdminErrands(
+  page = 0,
+  size = 200,
+  params: ErrandListParams = {},
+): Promise<FindErrandsResponse> {
+  const { data } = await apiService.get<FindErrandsResponse>('/admin/errands', {
+    params: { page, size, ...params },
+  });
   return data;
 }
 
