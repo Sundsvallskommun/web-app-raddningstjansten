@@ -1,14 +1,26 @@
 import { lazy, Suspense } from "react";
-import { Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import DemoAlert from "@/components/DemoAlert";
+import PdfDownloadButton from "@/components/PdfDownloadButton";
+import { FileDownload } from "@mui/icons-material";
+import demoGuidePdf from "@/assets/Demo-guide — Ansökan om egen sotning.pdf";
 
 // Charts (@mui/x-charts + d3) are admin-only and heavy — lazy-load them so they
 // stay out of the bundle served to citizens and the login pages.
 const ErrandStatistics = lazy(() =>
-  import("@/components/ErrandStatistics").then(m => ({ default: m.ErrandStatistics })),
+  import("@/components/ErrandStatistics").then((m) => ({
+    default: m.ErrandStatistics,
+  })),
 );
 
 // Errand types (modules) shown on the dashboard. Each renders its own scoped
@@ -42,11 +54,23 @@ export function AdminDashboardPage() {
             {`Inloggad som ${user?.name ?? ""}`}
           </Typography>
           <Box sx={{ mt: 2 }}>
-            <Button variant='contained' onClick={() => navigate("/admin/errands")}>
+            <Button
+              variant='contained'
+              onClick={() => navigate("/admin/errands")}
+            >
               Visa inkomna ärenden
             </Button>
           </Box>
-          <DemoAlert title='Information' />
+          <DemoAlert title='Information'>
+            <Typography sx={{ mt: 1 }}>Dokument kopplade till demo</Typography>
+            <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='Demoguide - Ansökan om egensotning'
+                href={demoGuidePdf}
+              />
+            </Stack>
+          </DemoAlert>
         </Paper>
 
         <Box>
@@ -61,8 +85,12 @@ export function AdminDashboardPage() {
             }
           >
             <Stack spacing={2}>
-              {ERRAND_TYPES.map(t => (
-                <ErrandStatistics key={t.typeSlug} typeSlug={t.typeSlug} title={t.title} />
+              {ERRAND_TYPES.map((t) => (
+                <ErrandStatistics
+                  key={t.typeSlug}
+                  typeSlug={t.typeSlug}
+                  title={t.title}
+                />
               ))}
             </Stack>
           </Suspense>

@@ -4,6 +4,14 @@ import { apiService } from "@/api/api-service";
 import { useAuth } from "@/auth/AuthContext";
 import { Wrapper } from "@/components/Wrapper";
 import DemoAlert from "@/components/DemoAlert";
+import { FileDownload } from "@mui/icons-material";
+import PdfDownloadButton from "@/components/PdfDownloadButton";
+import demoGuidePdf from "@/assets/Demo-guide — Ansökan om egen sotning.pdf";
+import bskPdf from "@/assets/BSK_Kopmangatan_5.pdf";
+import bskAnmarkningPdf from "@/assets/BSK_Kopmangatan_5_Anmarkning.pdf";
+import kursintygOkPdf from "@/assets/Kursintyg_Bostrom.pdf";
+import kursintygFelNamnPdf from "@/assets/Kursintyg_FelNamn.pdf";
+import kursintygFelUtbildningPdf from "@/assets/Kursintyg_FelUtbildning_Bostrom.pdf";
 
 export function CitizenDashboardPage() {
   const navigate = useNavigate();
@@ -42,7 +50,41 @@ export function CitizenDashboardPage() {
               Mina ärenden
             </Button>
           </Stack>
-          <DemoAlert title='Information' />
+          <DemoAlert title='Information'>
+            <Typography sx={{ mt: 1 }}>Dokument kopplade till demo</Typography>
+            <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='Demoguide - Ansökan om egensotning'
+                href={demoGuidePdf}
+              />
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='BSK - Brandskyddskontroll'
+                href={bskPdf}
+              />
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='BSK - Brandskyddskontroll med anmärkning'
+                href={bskAnmarkningPdf}
+              />
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='Kursintyg - OK'
+                href={kursintygOkPdf}
+              />
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='Kursintyg - Fel namn'
+                href={kursintygFelNamnPdf}
+              />
+              <PdfDownloadButton
+                icon={<FileDownload />}
+                label='Kursintyg - Fel utbildning'
+                href={kursintygFelUtbildningPdf}
+              />
+            </Stack>
+          </DemoAlert>
         </Paper>
       </Box>
     </Wrapper>
