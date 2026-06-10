@@ -11,7 +11,7 @@
 
 import bskBostrom from "@/assets/BSK_Kopmangatan_5.pdf";
 import kursintygBostrom from "@/assets/Kursintyg_Bostrom.pdf";
-import kursintygSundberg from "@/assets/Kursintyg_Sundell.pdf";
+import kursintygSundberg from "@/assets/Kursintyg_Sundberg.pdf";
 import bskAnmarkning from "@/assets/BSK_Kopmangatan_5_Anmarkning.pdf";
 import kursintygFelNamn from "@/assets/Kursintyg_FelNamn.pdf";
 import kursintygFelUtbildning from "@/assets/Kursintyg_FelUtbildning_Bostrom.pdf";
