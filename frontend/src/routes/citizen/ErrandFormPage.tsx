@@ -197,7 +197,7 @@ export function ErrandFormPage() {
     }));
 
     try {
-      await submit.mutateAsync({
+      const { id } = await submit.mutateAsync({
         application: {
           applicantEmail: email,
           fastighetsbeteckning,
@@ -217,7 +217,9 @@ export function ErrandFormPage() {
         },
         attachments: { brandskyddskontroll, utbildningsintyg },
       });
-      navigate('/errands', { replace: true });
+      // Land on the new errand so the citizen gets a clear "inskickad" confirmation
+      // and can watch it being handled (auto-decision shows up via polling).
+      navigate(`/errands/${id}`, { replace: true });
     } catch (err) {
       setError(apiErrorMessage(err, 'Kunde inte skicka ansökan.'));
     }

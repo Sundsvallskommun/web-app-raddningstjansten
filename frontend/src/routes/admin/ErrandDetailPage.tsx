@@ -460,28 +460,44 @@ export function ErrandDetailPage() {
                 <Typography variant='h6' sx={{ pb: 1 }}>
                   Handläggare
                 </Typography>
-                <Field
-                  label='Tilldelad'
-                  value={
-                    assignedToMe
-                      ? `${data.errand.assignedUserId} (du)`
-                      : data.errand.assignedUserId
-                  }
-                />
-                {!assignedToMe && !isDecided && !readOnly && (
-                  <Button
-                    variant='contained'
-                    color='secondary'
-                    fullWidth
-                    startIcon={<AssignmentIndOutlined />}
-                    disabled={assign.isPending}
-                    onClick={assignSelf}
-                    sx={{ mt: 1.5 }}
-                  >
-                    {data.errand.assignedUserId
-                      ? "Ta över ärendet"
-                      : "Tilldela mig själv"}
-                  </Button>
+                {isDecided && !data.errand.assignedUserId ? (
+                  // Decided without a handläggare = the process handled it itself.
+                  <>
+                    <Typography variant='caption' color='text.secondary'>
+                      Automatiserad
+                    </Typography>
+                    <Typography>
+                      {status === "DECIDED"
+                        ? "Automatiskt godkänd"
+                        : "Automatiskt avslagen"}
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Field
+                      label='Tilldelad'
+                      value={
+                        assignedToMe
+                          ? `${data.errand.assignedUserId} (du)`
+                          : data.errand.assignedUserId
+                      }
+                    />
+                    {!assignedToMe && !isDecided && !readOnly && (
+                      <Button
+                        variant='contained'
+                        color='secondary'
+                        fullWidth
+                        startIcon={<AssignmentIndOutlined />}
+                        disabled={assign.isPending}
+                        onClick={assignSelf}
+                        sx={{ mt: 1.5 }}
+                      >
+                        {data.errand.assignedUserId
+                          ? "Ta över ärendet"
+                          : "Tilldela mig själv"}
+                      </Button>
+                    )}
+                  </>
                 )}
               </Paper>
 
