@@ -11,6 +11,7 @@
 
 import bskBostrom from "@/assets/BSK_Kopmangatan_5.pdf";
 import kursintygBostrom from "@/assets/Kursintyg_Bostrom.pdf";
+import kursintygSundberg from "@/assets/Kursintyg_Sundell.pdf";
 import bskAnmarkning from "@/assets/BSK_Kopmangatan_5_Anmarkning.pdf";
 import kursintygFelNamn from "@/assets/Kursintyg_FelNamn.pdf";
 import kursintygFelUtbildning from "@/assets/Kursintyg_FelUtbildning_Bostrom.pdf";
@@ -42,7 +43,7 @@ const DEMO_DOCS_BY_FASTIGHET: Record<string, PersonDocs> = {
   // Karin Boström (pnr ...2475)
   "TIMRÅ BÖLE 1:10": { bsk: bskBostrom, kursintyg: kursintygBostrom },
   // Anna Sundberg (pnr ...0014) — add files once they carry her name + pnr + fastighet:
-  // "SUNDSVALL STENSTADEN 1:23": { bsk: bskSundberg, kursintyg: kursintygSundberg },
+  "SUNDSVALL STENSTADEN 1:23": { kursintyg: kursintygSundberg },
   // Erik Lindqvist (pnr ...0219):
   // "SUNDSVALL HAGA 4:5": { bsk: bskLindqvist, kursintyg: kursintygLindqvist },
 };
