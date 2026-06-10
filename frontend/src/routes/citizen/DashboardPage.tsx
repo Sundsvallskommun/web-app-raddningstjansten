@@ -7,15 +7,14 @@ import DemoAlert from "@/components/DemoAlert";
 import { FileDownload } from "@mui/icons-material";
 import PdfDownloadButton from "@/components/PdfDownloadButton";
 import demoGuidePdf from "@/assets/Demo-guide — Ansökan om egen sotning.pdf";
-import bskPdf from "@/assets/BSK_Kopmangatan_5.pdf";
-import bskAnmarkningPdf from "@/assets/BSK_Kopmangatan_5_Anmarkning.pdf";
-import kursintygOkPdf from "@/assets/Kursintyg_Bostrom.pdf";
-import kursintygFelNamnPdf from "@/assets/Kursintyg_FelNamn.pdf";
-import kursintygFelUtbildningPdf from "@/assets/Kursintyg_FelUtbildning_Bostrom.pdf";
+import { demoDocsForCitizen, FAULTY_DEMO_DOCS } from "@/utils/demoDocs";
 
 export function CitizenDashboardPage() {
   const navigate = useNavigate();
   const { user, clear } = useAuth();
+  // Only this test person's own (valid) documents are offered — the ones that
+  // match their application and can pass Eneo's document validation.
+  const docs = demoDocsForCitizen(user?.citizen);
 
   async function logout() {
     await apiService.post("/citizen/logout");
@@ -51,38 +50,49 @@ export function CitizenDashboardPage() {
             </Button>
           </Stack>
           <DemoAlert title='Information'>
-            <Typography sx={{ mt: 1 }}>Dokument kopplade till demo</Typography>
+            <Typography sx={{ mt: 1 }}>
+              Testdokument för din ansökan (endast dina egna visas)
+            </Typography>
             <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
               <PdfDownloadButton
                 icon={<FileDownload />}
                 label='Demoguide - Ansökan om egensotning'
                 href={demoGuidePdf}
               />
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='BSK - Brandskyddskontroll'
-                href={bskPdf}
-              />
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='BSK - Brandskyddskontroll med anmärkning'
-                href={bskAnmarkningPdf}
-              />
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='Kursintyg - OK'
-                href={kursintygOkPdf}
-              />
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='Kursintyg - Fel namn'
-                href={kursintygFelNamnPdf}
-              />
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='Kursintyg - Fel utbildning'
-                href={kursintygFelUtbildningPdf}
-              />
+              {docs.bsk && (
+                <PdfDownloadButton
+                  icon={<FileDownload />}
+                  label='Brandskyddskontroll (BSK)'
+                  href={docs.bsk}
+                />
+              )}
+              {docs.kursintyg && (
+                <PdfDownloadButton
+                  icon={<FileDownload />}
+                  label='Kursintyg (utbildningsintyg)'
+                  href={docs.kursintyg}
+                />
+              )}
+            </Stack>
+            {!docs.bsk && !docs.kursintyg && (
+              <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
+                Inga giltiga testdokument är kopplade till denna testperson ännu.
+              </Typography>
+            )}
+
+            <Typography sx={{ mt: 3 }}>
+              Felaktiga testdokument (för att demonstrera avslag, komplettering
+              och manuell granskning)
+            </Typography>
+            <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
+              {FAULTY_DEMO_DOCS.map((d) => (
+                <PdfDownloadButton
+                  key={d.href}
+                  icon={<FileDownload />}
+                  label={d.label}
+                  href={d.href}
+                />
+              ))}
             </Stack>
           </DemoAlert>
         </Paper>
