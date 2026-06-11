@@ -19,6 +19,8 @@ import {
   ArrowBack,
   DeleteOutline,
   DownloadOutlined,
+  HomeOutlined,
+  PlaceOutlined,
   UploadFileOutlined,
 } from "@mui/icons-material";
 import { apiService, citizenAttachmentDownloadUrl } from "@/api/api-service";
@@ -144,6 +146,31 @@ export function CitizenErrandDetailPage() {
                   <Typography variant='subtitle1'>
                     {applicantName(data.stakeholders)}
                   </Typography>
+                )}
+                {(data.details?.fastighetsbeteckning ||
+                  data.details?.propertyAddress) && (
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={{ xs: 0.5, sm: 3 }}
+                    sx={{ mt: 1, color: "text.secondary" }}
+                  >
+                    {data.details?.fastighetsbeteckning && (
+                      <Stack direction='row' spacing={0.75} alignItems='center'>
+                        <HomeOutlined fontSize='small' />
+                        <Typography variant='body2'>
+                          {data.details.fastighetsbeteckning}
+                        </Typography>
+                      </Stack>
+                    )}
+                    {data.details?.propertyAddress && (
+                      <Stack direction='row' spacing={0.75} alignItems='center'>
+                        <PlaceOutlined fontSize='small' />
+                        <Typography variant='body2'>
+                          {data.details.propertyAddress}
+                        </Typography>
+                      </Stack>
+                    )}
+                  </Stack>
                 )}
                 {!isDecided && !statusAlertDismissed && (
                   <Alert

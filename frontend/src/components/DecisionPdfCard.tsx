@@ -13,6 +13,9 @@ interface Props {
  */
 export function DecisionPdfCard({ errandId, role }: Props) {
   const url = role === 'admin' ? adminDecisionPdfUrl(errandId) : citizenDecisionPdfUrl(errandId);
+  // Open the browser's PDF viewer with the side navigation pane collapsed by
+  // default (PDF open parameters). Only on the inline viewer — not the download.
+  const viewerUrl = `${url}#navpanes=0&pagemode=none`;
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -25,7 +28,7 @@ export function DecisionPdfCard({ errandId, role }: Props) {
       <Box
         component="iframe"
         title="Beslut (PDF)"
-        src={url}
+        src={viewerUrl}
         sx={{ width: '100%', height: '70vh', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
       />
     </Paper>
