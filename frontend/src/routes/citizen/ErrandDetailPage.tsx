@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
@@ -63,6 +64,13 @@ export function CitizenErrandDetailPage() {
     if (data) markSeen(data.errand.id, data.errand.modified);
   }, [data]);
 
+  // The citizen can dismiss the status alert, but it re-appears whenever the
+  // errand actually changes (a poll bringing a new `modified` timestamp).
+  const [statusAlertDismissed, setStatusAlertDismissed] = useState(false);
+  useEffect(() => {
+    setStatusAlertDismissed(false);
+  }, [data?.errand.modified]);
+
   async function logout() {
     await apiService.post("/citizen/logout");
     clear();
@@ -92,9 +100,6 @@ export function CitizenErrandDetailPage() {
   const needsSupplement = data?.errand.status === "AWAITING_SUPPLEMENTATION";
   const isDecided =
     data?.errand.status === "DECIDED" || data?.errand.status === "REJECTED";
-  // Once a decision exists the beslut card tells the story — don't also show the
-  // in-progress outcome message.
-  const showOutcome = !!outcome && !isDecided;
 
   return (
     <Wrapper
@@ -140,13 +145,13 @@ export function CitizenErrandDetailPage() {
                     {applicantName(data.stakeholders)}
                   </Typography>
                 )}
-                {showOutcome && outcome && (
-                  <Alert severity={outcome.severity} sx={{ mt: 2 }}>
-                    {outcome.text}
-                  </Alert>
-                )}
-                {!isDecided && (
-                  <Alert severity='info' sx={{ mt: 2 }}>
+                {!isDecided && !statusAlertDismissed && (
+                  <Alert
+                    severity={outcome?.severity ?? "info"}
+                    onClose={() => setStatusAlertDismissed(true)}
+                    sx={{ mt: 2 }}
+                  >
+                    {outcome && <AlertTitle>{outcome.text}</AlertTitle>}
                     {needsSupplement
                       ? "Din ansökan är inskickad. Det enda du kan göra nu är att ladda upp den efterfrågade kompletteringen nedan — övriga uppgifter kan inte ändras."
                       : "Din ansökan är inskickad och bindande. Uppgifterna kan inte ändras i efterhand. Om något behöver kompletteras får du besked här."}
