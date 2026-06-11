@@ -112,11 +112,9 @@ export class CitizenAuthController {
 
     logger.info(`Citizen login completed (mock) for personId ${personId}`);
 
-    return res.json({
-      orderRef,
-      status: 'complete',
-      completionData: { user: { personalNumber: order.person.personNumber } },
-    });
+    // Don't echo the personnummer back to the client — the session holds it
+    // server-side and the display name is resolved from Citizen at /me.
+    return res.json({ orderRef, status: 'complete' });
   }
 
   @Post('/citizen/logout')

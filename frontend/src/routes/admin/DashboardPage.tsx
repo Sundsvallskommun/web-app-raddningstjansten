@@ -13,7 +13,7 @@ import { Wrapper } from "@/components/Wrapper";
 import DemoAlert from "@/components/DemoAlert";
 import PdfDownloadButton from "@/components/PdfDownloadButton";
 import { FileDownload } from "@mui/icons-material";
-import demoGuidePdf from "@/assets/Demo-guide — Ansökan om egen sotning.pdf";
+import { EMPLOYEE_DEMO_DOCS } from "@/utils/demoDocs";
 
 // Charts (@mui/x-charts + d3) are admin-only and heavy — lazy-load them so they
 // stay out of the bundle served to citizens and the login pages.
@@ -64,11 +64,14 @@ export function AdminDashboardPage() {
           <DemoAlert title='Information'>
             <Typography sx={{ mt: 1 }}>Dokument kopplade till demo</Typography>
             <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='Demoguide - Ansökan om egensotning'
-                href={demoGuidePdf}
-              />
+              {EMPLOYEE_DEMO_DOCS.map((d) => (
+                <PdfDownloadButton
+                  key={d.href}
+                  icon={<FileDownload />}
+                  label={d.label}
+                  href={d.href}
+                />
+              ))}
             </Stack>
           </DemoAlert>
         </Paper>

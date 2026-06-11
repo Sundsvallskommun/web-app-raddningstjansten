@@ -40,7 +40,7 @@ export const maskPersonNumber = (personNumber?: string | null): string | undefin
 
 /**
  * Mask a personal number embedded at the end of an id, e.g. a reporterUserId
- * "medborgare-198305090014" -> "medborgare-19830509-XXXX". Ids without a
+ * "medborgare-199001011234" -> "medborgare-19900101-XXXX". Ids without a
  * trailing 10–12 digit number are returned unchanged.
  */
 export const maskReporterUserId = (id?: string | null): string | undefined => {

@@ -6,8 +6,7 @@ import { Wrapper } from "@/components/Wrapper";
 import DemoAlert from "@/components/DemoAlert";
 import { FileDownload } from "@mui/icons-material";
 import PdfDownloadButton from "@/components/PdfDownloadButton";
-import demoGuidePdf from "@/assets/Demo-guide — Ansökan om egen sotning.pdf";
-import { demoDocsForCitizen, FAULTY_DEMO_DOCS } from "@/utils/demoDocs";
+import { demoDocsForCitizen } from "@/utils/demoDocs";
 
 export function CitizenDashboardPage() {
   const navigate = useNavigate();
@@ -54,11 +53,13 @@ export function CitizenDashboardPage() {
               Testdokument för din ansökan (endast dina egna visas)
             </Typography>
             <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
-              <PdfDownloadButton
-                icon={<FileDownload />}
-                label='Demoguide - Ansökan om egensotning'
-                href={demoGuidePdf}
-              />
+              {docs.demoguide && (
+                <PdfDownloadButton
+                  icon={<FileDownload />}
+                  label='Demoguide - Ansökan om egensotning'
+                  href={docs.demoguide}
+                />
+              )}
               {docs.bsk && (
                 <PdfDownloadButton
                   icon={<FileDownload />}
@@ -80,20 +81,24 @@ export function CitizenDashboardPage() {
               </Typography>
             )}
 
-            <Typography sx={{ mt: 3 }}>
-              Felaktiga testdokument (för att demonstrera avslag, komplettering
-              och manuell granskning)
-            </Typography>
-            <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
-              {FAULTY_DEMO_DOCS.map((d) => (
-                <PdfDownloadButton
-                  key={d.href}
-                  icon={<FileDownload />}
-                  label={d.label}
-                  href={d.href}
-                />
-              ))}
-            </Stack>
+            {docs.faulty.length > 0 && (
+              <>
+                <Typography sx={{ mt: 3 }}>
+                  Felaktiga testdokument (för att demonstrera avslag, komplettering
+                  och manuell granskning)
+                </Typography>
+                <Stack sx={{ flexFlow: "wrap", gap: 2, mt: 2 }}>
+                  {docs.faulty.map((d) => (
+                    <PdfDownloadButton
+                      key={d.href}
+                      icon={<FileDownload />}
+                      label={d.label}
+                      href={d.href}
+                    />
+                  ))}
+                </Stack>
+              </>
+            )}
           </DemoAlert>
         </Paper>
       </Box>

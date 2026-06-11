@@ -5,6 +5,7 @@ import authMiddleware from '@middlewares/auth.middleware';
 import { HttpException } from '@exceptions/HttpException';
 import { EngagementService } from '@services/engagement.service';
 import { logger } from '@utils/logger';
+import { maskPersonNumber } from '@utils/util';
 
 interface EngagementDto {
   organizationNumber: string;
@@ -43,7 +44,7 @@ export class EngagementController {
         }));
     } catch (error) {
       // Don't block the form if LegalEntity is unavailable; just offer "private".
-      logger.error(`Could not fetch engagements for ${user.personNumber}: ${(error as Error).message}`);
+      logger.error(`Could not fetch engagements for ${maskPersonNumber(user.personNumber)}: ${(error as Error).message}`);
       return [];
     }
   }
