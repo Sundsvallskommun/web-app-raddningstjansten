@@ -40,6 +40,8 @@ export const {
   SAML_CITIZEN_ISSUER,
   SAML_CITIZEN_IDP_PUBLIC_CERT,
   SAML_CITIZEN_PRIVATE_KEY,
+  // Public half of SAML_CITIZEN_PRIVATE_KEY; published in the SP metadata.
+  SAML_CITIZEN_PUBLIC_CERT,
   SAML_CITIZEN_SUCCESS_REDIRECT,
   SAML_CITIZEN_FAILURE_REDIRECT,
   // Admin SAML (fake SSO IdP) - Service Provider config
@@ -235,6 +237,14 @@ export const citizenSamlConfigured = (): boolean =>
     SAML_CITIZEN_IDP_PUBLIC_CERT &&
     SAML_CITIZEN_CALLBACK_URL,
   );
+
+/**
+ * True when we can publish the citizen SP metadata. Only our own side (EntityID +
+ * ACS URL) is needed — OneGate needs this metadata *before* it hands us its
+ * entryPoint/cert, so this must not depend on citizenSamlConfigured().
+ */
+export const citizenSamlMetadataConfigured = (): boolean =>
+  Boolean(SAML_CITIZEN_ISSUER && SAML_CITIZEN_CALLBACK_URL);
 
 /**
  * Effective citizen login mode. 'saml' only when explicitly requested AND the SP

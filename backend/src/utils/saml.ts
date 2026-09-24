@@ -1,4 +1,4 @@
-import { Strategy as SamlStrategy } from '@node-saml/passport-saml';
+import { generateServiceProviderMetadata, Strategy as SamlStrategy } from '@node-saml/passport-saml';
 import {
   ADMIN_GROUP,
   VIEWER_GROUP,
@@ -8,6 +8,7 @@ import {
   SAML_CITIZEN_IDP_PUBLIC_CERT,
   SAML_CITIZEN_ISSUER,
   SAML_CITIZEN_PRIVATE_KEY,
+  SAML_CITIZEN_PUBLIC_CERT,
   SAML_ENTRY_SSO,
   SAML_IDP_PUBLIC_CERT,
   SAML_ISSUER,
@@ -139,6 +140,27 @@ export const citizenSamlConfig = {
   wantAuthnResponseSigned: false,
   audience: false as const,
   acceptedClockSkewMs: -1,
+};
+
+/**
+ * Citizen SP metadata, built without the passport strategy: the strategy needs
+ * OneGate's entryPoint/cert, but OneGate needs this metadata first. When we sign
+ * AuthnRequests (private key set), the public cert is published as signing key.
+ */
+export const generateCitizenSpMetadata = (): string => {
+  const privateKey = citizenSamlConfig.privateKey;
+  const publicCert = normalizeCertificate(SAML_CITIZEN_PUBLIC_CERT);
+  if (privateKey && !publicCert) {
+    throw new Error('SAML_CITIZEN_PUBLIC_CERT is required when SAML_CITIZEN_PRIVATE_KEY is set');
+  }
+  return generateServiceProviderMetadata({
+    issuer: citizenSamlConfig.issuer,
+    callbackUrl: citizenSamlConfig.callbackUrl,
+    identifierFormat: citizenSamlConfig.identifierFormat,
+    wantAssertionsSigned: citizenSamlConfig.wantAssertionsSigned,
+    privateKey,
+    publicCerts: publicCert ?? null,
+  });
 };
 
 const citizenService = new CitizenService();

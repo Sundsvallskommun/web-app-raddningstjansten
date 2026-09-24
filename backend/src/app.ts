@@ -15,6 +15,7 @@ import {
   BASE_URL_PREFIX,
   CREDENTIALS,
   citizenSamlConfigured,
+  citizenSamlMetadataConfigured,
   LOG_FORMAT,
   NODE_ENV,
   ORIGIN,
@@ -28,7 +29,7 @@ import {
 } from '@config';
 import errorMiddleware from '@middlewares/error.middleware';
 import { SessionUser } from '@interfaces/user.interface';
-import { createCitizenSamlStrategy, createSamlStrategy } from '@utils/saml';
+import { createCitizenSamlStrategy, createSamlStrategy, generateCitizenSpMetadata } from '@utils/saml';
 import { logger, stream } from '@utils/logger';
 
 /** First configured origin (ORIGIN may be a comma-separated allowlist). */
@@ -176,6 +177,20 @@ class App {
    * The callback stores the same citizen session shape as the mock collect.
    */
   private initializeCitizenSamlRoutes(prefix: string) {
+    // SP metadata for the citizen federation (attach to the POB-ärende). Only
+    // needs our own issuer + ACS URL, so it is served before OneGate has answered.
+    this.app.get(`${prefix}/saml/citizen/metadata`, (_req, res) => {
+      if (!citizenSamlMetadataConfigured()) {
+        return res.status(501).json({ message: 'METADATA_UNAVAILABLE' });
+      }
+      try {
+        res.type('application/xml').send(generateCitizenSpMetadata());
+      } catch (e) {
+        logger.error(`Could not generate citizen SP metadata: ${(e as Error).message}`);
+        res.status(501).json({ message: 'METADATA_UNAVAILABLE' });
+      }
+    });
+
     if (!citizenSamlConfigured()) return;
 
     const origin = primaryOrigin();
@@ -211,20 +226,6 @@ class App {
         })(req, res, next);
       },
     );
-
-    // SP metadata for the citizen federation (attach to the POB-ärende).
-    this.app.get(`${prefix}/saml/citizen/metadata`, (_req, res) => {
-      try {
-        const strategy = (passport as any)._strategy('saml-citizen') as {
-          generateServiceProviderMetadata: (decryptionCert: string | null, signingCert: string | null) => string;
-        };
-        const metadata = strategy.generateServiceProviderMetadata(null, null);
-        res.type('application/xml').send(metadata);
-      } catch (e) {
-        logger.error(`Could not generate citizen SP metadata: ${(e as Error).message}`);
-        res.status(501).json({ message: 'METADATA_UNAVAILABLE' });
-      }
-    });
   }
 
   private initializeRoutes(controllers: Function[]) {

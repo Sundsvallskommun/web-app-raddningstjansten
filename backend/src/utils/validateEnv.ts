@@ -33,6 +33,7 @@ const validateEnv = () => {
     SAML_CITIZEN_ISSUER: str({ default: '' }),
     SAML_CITIZEN_IDP_PUBLIC_CERT: str({ default: '' }),
     SAML_CITIZEN_PRIVATE_KEY: str({ default: '' }),
+    SAML_CITIZEN_PUBLIC_CERT: str({ default: '' }),
     SAML_CITIZEN_SUCCESS_REDIRECT: str({ default: '' }),
     SAML_CITIZEN_FAILURE_REDIRECT: str({ default: '' }),
     // Admin SAML against the fake SSO IdP
